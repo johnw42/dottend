@@ -1,3 +1,9 @@
+> **This is a fork** of [Dotter](https://github.com/SuperCuber/dotter) by SuperCuber, maintained
+> at [johnw42/dotter](https://github.com/johnw42/dotter). It uses the same configuration format,
+> but adds an interactive `dotter watch`, changes the command-line output, and requires the latest
+> stable Rust. See [What's different in this fork](#whats-different-in-this-fork). The text below
+> is adapted from the original README.
+
 # What is Dotter?
 Dotter is a dotfile manager and templater.
 
@@ -11,28 +17,29 @@ However, there are several issues with that barebones approach:
 
 Dotter aims to solve all those problems by providing a flexible configuration and automatic templating or symlinking to the target locations.
 
+# What's different in this fork
+- **Interactive `dotter watch`.** In a terminal, `dotter watch` deploys once, then opens a fullscreen view of every difference between the repository and the installed files, refreshing as either changes. Each change is shown as a diff, and you can deploy the repository's version or copy the installed file back into the repository (offered only when nothing would be lost, so never for real templates). It also watches the installed files, so edits made outside the repository show up immediately. When a change needs root, it steps aside for `sudo` to ask for your password. Use `dotter watch --no-tui` for the old behavior of deploying on every change.
+- **New output format.** Errors and warnings are labelled `error:`/`warning:`, file actions read like `+ symlink   bashrc → ~/.bashrc`, diffs have `+`/`-` signs with changed words highlighted, and deploys end with a summary such as `Deployed: 2 added, 1 skipped`. Colors honor `NO_COLOR` and `CLICOLOR_FORCE`. The output differs from the original Dotter's, so scripts that parse it may need updating.
+- **Watch fixes.** `dotter watch` no longer redeploys in an endless loop (also fixed upstream), no longer prints errors for git's short-lived lock files, and exits when its terminal is closed.
+- **Requires the latest stable Rust** (currently 1.99).
+
 # Installation
-## Mac (Homebrew)
-Dotter is available on homebrew using `brew install dotter`
+The packages for Homebrew, the AUR, Scoop and crates.io, and the release binaries, all install the original Dotter. To install this fork, use Cargo with an up-to-date Rust toolchain:
 
-## Arch Linux
-The following AUR packages are available:
-- [dotter-rs-bin](https://aur.archlinux.org/packages/dotter-rs-bin) for a precompiled version of the latest release
-- [dotter-rs](https://aur.archlinux.org/packages/dotter-rs) for the latest release's source that is built on your machine
-- [dotter-rs-git](https://aur.archlinux.org/packages/dotter-rs-git) for the latest commit on master that is built on your machine
+```sh
+cargo install --locked --git https://github.com/johnw42/dotter
+```
 
-All of those are maintained by [orhun](https://github.com/orhun/) - huge thanks to him!
+Or from a clone of the repository:
 
-## Windows
-Dotter is available on [Scoop](https://scoop.sh). Run `scoop install dotter` to install the latest release.
+```sh
+cargo install --locked --path .
+```
 
-## Others
-
-Download the binary for your platform from the latest release and then put it in your `$PATH` or in your dotfile repository (then you'd run it with `./dotter`).
-Alternatively, Dotter is on [crates.io](https://crates.io/crates/dotter), so if you have Rustup installed, run `cargo install dotter`.
+`--locked` builds with the dependency versions the fork is tested with.
 
 # Wiki
-Check out [the wiki](https://github.com/SuperCuber/dotter/wiki) for more information.
+The original project's [wiki](https://github.com/SuperCuber/dotter/wiki) applies to this fork too, since the configuration format is the same.
 Among other things, it explains how to setup and configure Dotter, as well as giving insight on how the templating and deployment works.
 
 # Usage
@@ -92,9 +99,7 @@ Options:
 ```
 
 # Contributing
-Contributions to Dotter are welcome, whether in the form of a pull request or an issue (for bug repots, feature requests, or other helpful comments)
+Issues and pull requests for this fork go to [johnw42/dotter](https://github.com/johnw42/dotter). Bugs that also affect the original Dotter are worth reporting [upstream](https://github.com/SuperCuber/dotter) too.
 
-# Support
-Like what I do and want to encourage me to continue?\
-You can donate a small amount via [Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=329HKDXK9UB84).\
-Donations are not expected but greatly appreciated.
+# Credits
+Dotter was created by [SuperCuber](https://github.com/SuperCuber). To support the original author, you can donate via [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=329HKDXK9UB84).

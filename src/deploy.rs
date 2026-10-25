@@ -86,18 +86,11 @@ pub fn deploy(opt: &Options) -> Result<bool> {
 
     // === Post-deploy ===
 
-    let show_summary = ui::fancy() && !opt.quiet;
-    if summary.skipped > 0 && !show_summary {
-        error!(
-            "Some files were skipped. To ignore errors and overwrite unexpected target files, use the --force flag."
-        );
-    }
-
     if !opt.dry_run {
         filesystem::save_file(&opt.cache_file, cache).context("save cache")?;
     }
 
-    if show_summary {
+    if !opt.quiet {
         summary.print("Deployed", opt.dry_run);
     }
 
@@ -241,20 +234,13 @@ pub fn undeploy(opt: &Options) -> Result<bool> {
 
     // === Post-undeploy ===
 
-    let show_summary = ui::fancy() && !opt.quiet;
-    if summary.skipped > 0 && !show_summary {
-        error!(
-            "Some files were skipped. To ignore errors and overwrite unexpected target files, use the --force flag."
-        );
-    }
-
     if !opt.dry_run {
         // Should be empty if everything went well, but if some things were skipped this contains
         // them.
         filesystem::save_file(&opt.cache_file, cache).context("save cache")?;
     }
 
-    if show_summary {
+    if !opt.quiet {
         summary.print("Undeployed", opt.dry_run);
     }
 

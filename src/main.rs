@@ -40,20 +40,13 @@ pub(crate) fn display_error(error: anyhow::Error) {
     let mut chain = error.chain();
     let mut error_message = format!("Failed to {}", chain.next().unwrap());
 
-    if ui::fancy() {
-        for e in chain {
-            write!(
-                error_message,
-                "\n  {} {e}",
-                ui::paint(ui::DIM, "caused by:")
-            )
-            .unwrap();
-        }
-    } else {
-        error_message.push_str("\nCaused by:");
-        for e in chain {
-            write!(error_message, "\n    {e}").unwrap();
-        }
+    for e in chain {
+        write!(
+            error_message,
+            "\n  {} {e}",
+            ui::paint(ui::DIM, "caused by:")
+        )
+        .unwrap();
     }
 
     error!("{}", error_message);

@@ -1,16 +1,14 @@
 //! Terminal presentation: styles, the logger backend, and interactive prompts.
 //!
-//! When stdout is a terminal, output is styled through `anstream`, which honors the `NO_COLOR` /
-//! `CLICOLOR_FORCE` conventions. Otherwise, Dotter's classic output format is produced unchanged,
-//! so that anything consuming it keeps working.
+//! Output is styled through `anstream`, which strips the styling when the stream isn't a terminal
+//! and honors the `NO_COLOR` / `CLICOLOR_FORCE` conventions.
 
 use std::fmt::Display;
 use std::io::{self, IsTerminal, Write};
 use std::path::{MAIN_SEPARATOR, Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 use anstyle::{AnsiColor, Style};
-use crossterm::style::Stylize;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 
 pub const ADDED: Style = AnsiColor::Green.on_default();
@@ -21,13 +19,6 @@ pub const BOLD: Style = Style::new().bold();
 pub const ERROR: Style = AnsiColor::Red.on_default().bold();
 pub const WARNING: Style = AnsiColor::Yellow.on_default().bold();
 pub const HINT: Style = AnsiColor::Cyan.on_default().bold();
-
-/// Whether to use the modern output format. Only enabled when stdout is a terminal; otherwise the
-/// classic format is preserved exactly.
-pub fn fancy() -> bool {
-    static FANCY: OnceLock<bool> = OnceLock::new();
-    *FANCY.get_or_init(|| io::stdout().is_terminal())
-}
 
 /// Wraps `value` in `style`. The escape codes are removed by `anstream` when not on a terminal.
 pub fn paint(style: Style, value: impl Display) -> String {
@@ -62,15 +53,6 @@ pub enum Op {
 
 /// A single line describing an action on a file, e.g. `+ symlink   zshrc → ~/.zshrc`
 pub fn action(op: Op, kind: &str, source: &Path, target: &Path) -> String {
-    if !fancy() {
-        let marker = match op {
-            Op::Add => "[+]".green(),
-            Op::Remove => "[-]".red(),
-            Op::Change => "[~]".yellow(),
-        };
-        return format!("{marker} {kind} {source:?} -> {target:?}");
-    }
-
     let (style, sign) = match op {
         Op::Add => (ADDED, '+'),
         Op::Remove => (REMOVED, '-'),
@@ -131,26 +113,8 @@ impl Log for Logger {
 }
 
 pub fn init_logger(level: LevelFilter) {
-    if fancy() {
-        log::set_logger(&Logger).expect("logger is only initialized once");
-        log::set_max_level(level);
-        return;
-    }
-
-    simplelog::TermLogger::init(
-        level,
-        simplelog::ConfigBuilder::new()
-            .set_time_level(LevelFilter::Off)
-            .set_location_level(LevelFilter::Debug)
-            .set_target_level(LevelFilter::Off)
-            .set_thread_level(LevelFilter::Off)
-            .set_level_padding(simplelog::LevelPadding::Left)
-            .add_filter_allow("dotter".into())
-            .build(),
-        simplelog::TerminalMode::Mixed,
-        simplelog::ColorChoice::Auto,
-    )
-    .unwrap();
+    log::set_logger(&Logger).expect("logger is only initialized once");
+    log::set_max_level(level);
 }
 
 // === Capture ===
@@ -210,11 +174,12 @@ pub fn confirm_delete_empty_dir(dir: &Path) -> bool {
         return false;
     }
 
-    if fancy() && io::stdin().is_terminal() && io::stderr().is_terminal() {
+    let prompt = format!("Directory {} is now empty. Delete it?", path(dir));
+    if io::stdin().is_terminal() && io::stderr().is_terminal() {
         use dialoguer::{Confirm, console::Term, theme::ColorfulTheme};
 
         return Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!("Directory {} is now empty. Delete it?", path(dir)))
+            .with_prompt(prompt)
             .default(false)
             .interact_on_opt(&Term::stderr())
             .ok()
@@ -222,9 +187,8 @@ pub fn confirm_delete_empty_dir(dir: &Path) -> bool {
             .unwrap_or(false);
     }
 
-    ask_boolean(&format!(
-        "Directory at {dir:?} is now empty. Delete [y/N]? "
-    ))
+    // Not interactive, so read an answer from stdin, where it may have been piped in
+    ask_boolean(&format!("{prompt} [y/N]"))
 }
 
 fn ask_boolean(prompt: &str) -> bool {

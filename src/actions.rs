@@ -542,11 +542,7 @@ pub fn update_template(
                     source, target.target, comparison
                 );
                 if log_enabled!(log::Level::Info) {
-                    if ui::fancy() {
-                        info!("  Refusing because of the following changes in the target file:");
-                    } else {
-                        info!("Refusing because of the following changes in target location: ");
-                    }
+                    info!("  Refusing because of the following changes in the target file:");
                     diff.print(diff_context_lines);
                 }
                 Ok(false)

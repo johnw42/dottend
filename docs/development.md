@@ -10,15 +10,14 @@ See also: [Overview](README.md).
 - **Dependencies:** keep them up to date within their major versions with `cargo update`. Major
   upgrades still need checking for breaking changes; `hostname` 0.4, `mockall` 0.15 and
   `shellexpand` 3 are available but not yet adopted.
-- **ratatui** is 0.30 and uses the same crossterm (0.29) that dotter uses directly, so only one
-  crossterm is built. TUI code uses it through `ratatui::crossterm`.
+- **ratatui** is 0.30 and uses the same crossterm (0.29) as everything else, through
+  `ratatui::crossterm`. dotter has no direct crossterm dependency.
 - **watchexec** is required at ≥ 8.4 (for `Filterer::check_dir`), with globset filterer
   ≥ 8.0.6. watchexec 8.4's dependencies need Rust 1.87. `cargo install` without `--locked`
   ignores `Cargo.lock` and takes the newest compatible versions, which is how a
   watchexec-version-specific bug once showed up in the user's build but not in tests. Install
   with `cargo install --locked --path .`.
-- **Plain mode** still needs simplelog, crossterm and diff. **Fancy mode** uses anstream,
-  anstyle, similar, and dialoguer (default features off).
+- **Output** uses anstream, anstyle, similar, and dialoguer (default features off).
 
 ## CI (`.github/workflows/continuous-integration.yml`)
 

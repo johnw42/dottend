@@ -1,6 +1,6 @@
 # Interactive TUI
 
-See also: [Watch mode](watch.md), [Output modes](output.md), [Deploying](deploy.md).
+See also: [Watch mode](watch.md), [Output](output.md), [Deploying](deploy.md).
 
 ## `changes::Plan`
 

@@ -1,6 +1,6 @@
 # Deploying
 
-See also: [Configuration](configuration.md), [Output modes](output.md), [Interactive TUI](tui.md).
+See also: [Configuration](configuration.md), [Output](output.md), [Interactive TUI](tui.md).
 
 ## The cache
 

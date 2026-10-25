@@ -2,29 +2,28 @@
 
 See also: [Interactive TUI](tui.md), [Development](development.md).
 
-`ui::fancy()` is true when stdout is a terminal (checked once).
+There is one output format. Everything is written through `anstream`, which strips the styling
+when a stream isn't a terminal and honors `NO_COLOR` and `CLICOLOR_FORCE`. There's no separate
+"plain" format and no compatibility requirement for scripts parsing the output: this is the
+user's own fork, and they dropped that requirement. (Before that, piped output had to match
+upstream dotter's classic format byte for byte; that code was removed.)
 
-- **Not a terminal (plain mode):** the output must stay **byte-for-byte identical** to dotter's
-  classic output: simplelog's `[ INFO]`-style prefixes, crossterm-colored `[+]`/`[-]`/`[~]`
-  markers with Debug-quoted paths, the `diff`-crate renderer, the classic prompts and error
-  format. This includes the ANSI codes crossterm emits even into pipes. It is a hard
-  requirement from the user. Don't change plain-mode strings. The only accepted differences are
-  source line numbers in `-vv` debug tags.
-- **Terminal (fancy mode):** `ui::Logger` (writes through `anstream`, honors `NO_COLOR` and
-  `CLICOLOR_FORCE`) prints `error:`/`warning:` labels. Actions look like
-  `+ symlink   src → ~/target` (`ui::action`, `ui::path` shortens `$HOME`). Diffs use
-  `Diff::rows` with `similar`. `deploy` prints a closing `Summary`. The prompt is `dialoguer`.
+- **Logging** (`ui::Logger`): errors and warnings go to stderr with `error:`/`warning:` labels.
+  Info goes to stdout unprefixed, debug and trace dimmed with their source location. Only targets
+  starting with `dotter` are logged.
+- **Actions** (`ui::action`): `+ symlink   src → ~/target`, with `ui::path` shortening `$HOME`.
+- **Diffs** (`Diff::print`, `Diff::rows`): rendered with `similar`. Lines get `+`/`-` signs, with
+  word-level emphasis and a "no newline at end of file" marker.
+- **Summary** (`deploy::Summary::print`): `Deployed: 2 added, 1 skipped`, plus a `hint:` about
+  `--force` when files were skipped. It prints nothing when no files were added, removed or
+  skipped, and nothing with `-q`.
+- **Errors** (`display_error`): `error: Failed to <context>` followed by indented `caused by:`
+  lines.
+- **Prompt** (`ui::confirm_delete_empty_dir`): a `dialoguer` confirmation when stdin and stderr
+  are terminals. Otherwise it reads a `y`/`n` line from stdin, so answers can be piped in.
 
-Every user-visible output site branches on `fancy()`: `ui::action`, `Diff::print`,
-`display_error`, the "Refusing because…" line in `actions.rs`, the skipped-files error and
-summary in `deploy.rs`, watch's "Deploying..." line, and the prompt.
-
-**How to verify plain mode:** build the old binary (a `git worktree` at the base commit, with
-its own `--target-dir`) and the new one. Run the same scenarios in a fresh repo at a fixed path
-with a fake `$HOME`, all output piped. Then `diff -r` the captured stdout, stderr and exit codes.
-
-**`Diff::has_changes`** uses `diff::lines` in both modes, because it drives deploy decisions.
-A missing final newline *does* count as a change.
+**`Diff::has_changes`** drives deploy decisions, so its meaning matters: line endings (`\n` or
+`\r\n`) are ignored, but a missing final newline counts as a change.
 
 ## Capture mode
 

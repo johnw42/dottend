@@ -111,16 +111,12 @@ fn report_watcher_error(hook: ErrorHook) {
 }
 
 fn deploy_and_report(opt: &Options, changes_detected: bool) -> bool {
-    if crate::ui::fancy() {
-        let message = if changes_detected {
-            "Changes detected, deploying..."
-        } else {
-            "Deploying..."
-        };
-        anstream::println!("{} {message}", crate::ui::paint(crate::ui::HINT, "::"));
+    let message = if changes_detected {
+        "Changes detected, deploying..."
     } else {
-        println!("[Dotter] Deploying...");
-    }
+        "Deploying..."
+    };
+    anstream::println!("{} {message}", crate::ui::paint(crate::ui::HINT, "::"));
     match deploy::deploy(opt) {
         Ok(error_occurred) => !error_occurred,
         Err(e) => {
@@ -132,7 +128,8 @@ fn deploy_and_report(opt: &Options, changes_detected: bool) -> bool {
 
 pub(crate) async fn watch(opt: Options, no_tui: bool) -> Result<()> {
     // The interface needs a terminal, and stdin can't hold both a patch and keypresses
-    if no_tui || !crate::ui::fancy() || opt.patch {
+    use std::io::IsTerminal;
+    if no_tui || !std::io::stdout().is_terminal() || opt.patch {
         watch_and_deploy(opt).await
     } else {
         watch_interactive(opt).await

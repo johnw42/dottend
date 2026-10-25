@@ -8,7 +8,7 @@ grep.
 
 - [Configuration](configuration.md): loading and merging `global.toml` and `local.toml`.
 - [Deploying](deploy.md): the cache, the deploy algorithm, filesystem access and sudo.
-- [Output modes](output.md): plain versus terminal output, and capture mode.
+- [Output](output.md): the output format, and capture mode.
 - [Watch mode](watch.md): `dotter watch` and how the watcher is filtered.
 - [Interactive TUI](tui.md): change detection, copy-back, and the interface.
 - [Development](development.md): dependencies and toolchain, CI, testing.
@@ -34,10 +34,10 @@ Subcommands (`src/args.rs`): `deploy` (default), `undeploy`, `init`, `watch` (fe
 | `deploy.rs` | `deploy` / `undeploy`: the set arithmetic between desired files and the cache, hooks, the `Summary` of a run, and `desired_files`, which splits files into symlinks and templates. |
 | `actions.rs` | One function per action (create, update or delete × symlink or template), each matching on the on-disk state. The `ActionRunner` trait exists so `deploy.rs` tests can mock it (mockall). |
 | `filesystem.rs` | The `Filesystem` trait: `RealFilesystem` (unix and windows versions) and `DryRunFilesystem`. State comparisons (`SymlinkComparison`, `TemplateComparison`), sudo elevation, file loading and saving. |
-| `difference.rs` | `Diff` (old and new text): change detection plus two renderers, the classic one (`diff` crate) and the terminal one (`similar`). |
+| `difference.rs` | `Diff` (old and new text): change detection and rendering with `similar`, either printed or as rows for the TUI. |
 | `hooks.rs` | Renders a hook script as a template into the cache directory and runs it. |
 | `init.rs` | Writes a starter config listing every file in the directory. |
-| `ui.rs` | The output mode switch (`fancy()`), styles, the terminal logger, capture mode, prompts. |
+| `ui.rs` | Styles, the logger, capture mode, prompts. |
 | `watch.rs` | `dotter watch`: auto-deploy mode and interactive mode (watchexec setup and filtering). |
 | `changes.rs` | Interactive mode only: finds differences between the repo and the installed files (`Plan`, `Change`) and resolves them (`Plan::apply`). |
 | `tui.rs` | Interactive mode only: the ratatui interface. |
@@ -46,9 +46,13 @@ Subcommands (`src/args.rs`): `deploy` (default), `undeploy`, `init`, `watch` (fe
 
 ## History
 
-This is a fork (`origin` = johnw42/dotter, `upstream` = SuperCuber/dotter).
+This is the user's own fork (`origin` = johnw42/dotter, `upstream` = SuperCuber/dotter). It no
+longer needs to stay compatible with upstream's output or toolchain: scripts parsing the old output
+format aren't supported, and it targets the latest stable Rust.
 
 - The watch redeploy-loop fix was merged upstream as #234.
 - The terminal-output modernization (#235) was rejected upstream.
+- A draft PR (#236) offers upstream a version-agnostic fix for the watcher's vanished-file
+  errors, without the `check_dir` forwarding, which would need Rust 1.87 there.
 - The terminal output, TUI, sudo support, and later watcher fixes live only on the fork's
   `modernize-cli-output` branch.

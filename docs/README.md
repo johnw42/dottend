@@ -54,5 +54,7 @@ format aren't supported, and it targets the latest stable Rust.
 - The terminal-output modernization (#235) was rejected upstream.
 - A draft PR (#236) offers upstream a version-agnostic fix for the watcher's vanished-file
   errors, without the `check_dir` forwarding, which would need Rust 1.87 there.
-- The terminal output, TUI, sudo support, and later watcher fixes live only on the fork's
-  `modernize-cli-output` branch.
+- The terminal output, TUI, sudo support, and later watcher fixes live only in the fork.
+- All development happens directly on `main`, the fork's default branch. The old `master` (a
+  copy of upstream's) was deleted. Branches for upstream PRs are based on `upstream/master`
+  instead.

@@ -13,7 +13,9 @@ use similar::ChangeTag;
 
 use std::collections::{BTreeSet, VecDeque};
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, TryRecvError};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::Duration;
 
 use crate::args::Options;
@@ -21,11 +23,12 @@ use crate::changes::{Change, Direction, Kind, Plan, State};
 use crate::difference::DiffRow;
 use crate::ui;
 
-/// Sent to the interface by the file watcher.
+/// Sent to the interface by the file watcher, and by the thread reading terminal input.
 pub enum Message {
     /// Watched files changed
     Refresh,
     Quit,
+    Terminal(Event),
 }
 
 const MAX_MESSAGES: usize = 100;
@@ -36,7 +39,7 @@ const VISIBLE_MESSAGES: usize = 4;
 /// all deployed files whenever they change, so they can be watched.
 pub fn run(
     opt: &Options,
-    messages: Receiver<Message>,
+    (sender, messages): (Sender<Message>, Receiver<Message>),
     first_message: (Level, String),
     mut watch_targets: impl FnMut(&BTreeSet<PathBuf>),
 ) -> Result<()> {
@@ -47,6 +50,7 @@ pub fn run(
     log::set_max_level(log::LevelFilter::Error);
 
     let mut terminal = TerminalGuard(ratatui::init());
+    let input = InputReader::spawn(sender);
     let mut app = App::new(opt);
     let mut watched_targets = BTreeSet::new();
     app.message(first_message.0, first_message.1);
@@ -70,34 +74,43 @@ pub fn run(
             break Ok(());
         }
 
-        match event::poll(Duration::from_millis(100)) {
-            Ok(true) => match event::read() {
-                Ok(Event::Key(key)) if key.kind == KeyEventKind::Press => {
-                    app.on_key(key);
-                    redraw = true;
-                    if let Some(request) = app.elevation.take() {
-                        if let Err(e) = elevate(&mut terminal.0, &mut app, request) {
-                            break Err(e);
-                        }
-                    }
-                }
-                Ok(Event::Resize(..)) => redraw = true,
-                Ok(_) => {}
-                Err(e) => break Err(e.into()),
-            },
-            Ok(false) => {}
-            Err(e) => break Err(e.into()),
-        }
+        // Wake up periodically to show messages collected from other threads
+        let first = match messages.recv_timeout(Duration::from_millis(250)) {
+            Ok(message) => message,
+            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Disconnected) => break Ok(()),
+        };
 
         let mut refresh = false;
-        loop {
-            match messages.try_recv() {
-                Ok(Message::Refresh) => refresh = true,
-                Ok(Message::Quit) | Err(TryRecvError::Disconnected) => app.quit = true,
-                Err(TryRecvError::Empty) => break,
+        let mut failure = None;
+        for message in std::iter::once(first).chain(messages.try_iter()) {
+            match message {
+                Message::Refresh => refresh = true,
+                Message::Quit => app.quit = true,
+                Message::Terminal(Event::Key(key)) if key.kind == KeyEventKind::Press => {
+                    app.on_key(key);
+                    redraw = true;
+                }
+                Message::Terminal(Event::Resize(..)) => redraw = true,
+                Message::Terminal(_) => {}
+            }
+            if let Some(request) = app.elevation.take() {
+                input.pause();
+                let elevated = elevate(&mut terminal.0, &mut app, request);
+                input.resume();
+                if let Err(e) = elevated {
+                    failure = Some(e);
+                    break;
+                }
+            }
+            if app.quit {
+                break;
             }
         }
-        if refresh {
+        if let Some(e) = failure {
+            break Err(e);
+        }
+        if refresh && !app.quit {
             app.refresh();
             redraw = true;
         }
@@ -108,6 +121,68 @@ pub fn run(
     log::set_max_level(previous_level);
     ui::stop_capture();
     result
+}
+
+/// Reads terminal input on its own thread and sends it as messages.
+///
+/// When the terminal goes away, crossterm's polling spins instead of failing, so reading input on
+/// the interface's thread would keep it from ever seeing the `Quit` message sent on SIGHUP. On its
+/// own thread, a spinning read can't prevent the process from exiting.
+struct InputReader {
+    paused: Arc<AtomicBool>,
+    /// Whether the thread has noticed it's paused and stopped reading
+    idle: Arc<AtomicBool>,
+}
+
+impl InputReader {
+    fn spawn(sender: Sender<Message>) -> InputReader {
+        let paused = Arc::new(AtomicBool::new(false));
+        let idle = Arc::new(AtomicBool::new(false));
+        let reader = InputReader {
+            paused: paused.clone(),
+            idle: idle.clone(),
+        };
+
+        std::thread::spawn(move || {
+            loop {
+                if paused.load(Ordering::SeqCst) {
+                    idle.store(true, Ordering::SeqCst);
+                    std::thread::sleep(Duration::from_millis(20));
+                    continue;
+                }
+                idle.store(false, Ordering::SeqCst);
+
+                let message = match event::poll(Duration::from_millis(50)) {
+                    Ok(false) => continue,
+                    Ok(true) => match event::read() {
+                        Ok(event) => Message::Terminal(event),
+                        Err(_) => Message::Quit,
+                    },
+                    Err(_) => Message::Quit,
+                };
+                let quit = matches!(message, Message::Quit);
+                if sender.send(message).is_err() || quit {
+                    break;
+                }
+            }
+        });
+
+        reader
+    }
+
+    /// Stops reading input, so something else can read from the terminal. Returns once the thread
+    /// has stopped.
+    fn pause(&self) {
+        self.paused.store(true, Ordering::SeqCst);
+        self.idle.store(false, Ordering::SeqCst);
+        while !self.idle.load(Ordering::SeqCst) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    fn resume(&self) {
+        self.paused.store(false, Ordering::SeqCst);
+    }
 }
 
 /// Leaves the interface to let sudo ask for a password, then applies the action if that worked.

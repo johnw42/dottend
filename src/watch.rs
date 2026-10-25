@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use watchexec::error::RuntimeError;
 use watchexec::filter::Filterer;
 use watchexec::sources::fs::Watcher;
-use watchexec::{Config, WatchedPath, Watchexec};
+use watchexec::{Config, ErrorHook, WatchedPath, Watchexec};
 use watchexec_events::filekind::FileEventKind;
 use watchexec_events::{Event, Priority, Tag};
 use watchexec_filterer_globset::GlobsetFilterer;
@@ -33,6 +33,11 @@ struct InstalledFiles {
 }
 
 impl Filterer for ModificationFilterer {
+    /// Ignored directories, such as `.git` and the cache, aren't watched at all.
+    fn check_dir(&self, path: &Path) -> Result<bool, RuntimeError> {
+        self.repository.check_dir(path)
+    }
+
     fn check_event(&self, event: &Event, priority: Priority) -> Result<bool, RuntimeError> {
         let is_access = event
             .tags
@@ -82,6 +87,29 @@ async fn repository_filterer(opt: &Options, origin: &Path) -> Result<GlobsetFilt
 }
 
 /// Returns whether the deploy succeeded without skipping anything.
+fn report_watcher_error(hook: ErrorHook) {
+    let error: &dyn std::error::Error = &hook.error;
+    let chain: Vec<&dyn std::error::Error> =
+        std::iter::successors(Some(error), |e| e.source()).collect();
+
+    // A file that disappears before the watcher can look at it, such as one of git's lock
+    // files, is harmless
+    let vanished = chain.iter().any(|e| {
+        e.downcast_ref::<std::io::Error>()
+            .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+    });
+    let message = chain
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(": ");
+    if vanished {
+        debug!("Watcher error: {message}");
+    } else {
+        log::error!("Watcher error: {message}");
+    }
+}
+
 fn deploy_and_report(opt: &Options, changes_detected: bool) -> bool {
     if crate::ui::fancy() {
         let message = if changes_detected {
@@ -140,9 +168,7 @@ async fn watch_and_deploy(opt: Options) -> Result<()> {
         action
     });
 
-    config.on_error(move |e| {
-        log::error!("Watcher error: {e:#?}");
-    });
+    config.on_error(report_watcher_error);
 
     let we = Watchexec::with_config(config)?;
     we.main().await.context("run watchexec main loop")??;
@@ -179,6 +205,7 @@ async fn watch_interactive(opt: Options) -> Result<()> {
     });
 
     let (sender, receiver) = std::sync::mpsc::channel();
+    let input_sender = sender.clone();
     config.on_action(move |mut action| {
         if action.signals().next().is_some() {
             let _ = sender.send(tui::Message::Quit);
@@ -191,31 +218,34 @@ async fn watch_interactive(opt: Options) -> Result<()> {
         action
     });
 
-    config.on_error(move |e| {
-        log::error!("Watcher error: {e:#?}");
-    });
+    config.on_error(report_watcher_error);
 
     let we = Watchexec::with_config(config)?;
     let main = we.main();
     let watch_config = we.config.clone();
 
     let interface = tokio::task::spawn_blocking(move || {
-        tui::run(&opt, receiver, startup_message, |installed| {
-            *targets.write().unwrap() = installed.clone();
+        tui::run(
+            &opt,
+            (input_sender, receiver),
+            startup_message,
+            |installed| {
+                *targets.write().unwrap() = installed.clone();
 
-            // Watch the directories containing the installed files rather than the files
-            // themselves, so that files which are replaced or created are noticed too.
-            let directories: BTreeSet<PathBuf> = installed
-                .iter()
-                .filter_map(|target| target.parent())
-                .filter(|dir| dir.is_dir() && !dir.starts_with(&origin))
-                .map(Path::to_owned)
-                .collect();
-            watch_config.pathset(
-                std::iter::once(WatchedPath::recursive("."))
-                    .chain(directories.into_iter().map(WatchedPath::non_recursive)),
-            );
-        })
+                // Watch the directories containing the installed files rather than the files
+                // themselves, so that files which are replaced or created are noticed too.
+                let directories: BTreeSet<PathBuf> = installed
+                    .iter()
+                    .filter_map(|target| target.parent())
+                    .filter(|dir| dir.is_dir() && !dir.starts_with(&origin))
+                    .map(Path::to_owned)
+                    .collect();
+                watch_config.pathset(
+                    std::iter::once(WatchedPath::recursive("."))
+                        .chain(directories.into_iter().map(WatchedPath::non_recursive)),
+                );
+            },
+        )
     });
 
     let result = interface.await.context("run interactive interface");

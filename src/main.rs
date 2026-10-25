@@ -3,6 +3,8 @@ extern crate log;
 
 mod actions;
 mod args;
+#[cfg(feature = "watch")]
+mod changes;
 mod config;
 mod deploy;
 mod difference;
@@ -10,6 +12,8 @@ mod filesystem;
 mod handlebars_helpers;
 mod hooks;
 mod init;
+#[cfg(feature = "watch")]
+mod tui;
 mod ui;
 #[cfg(feature = "watch")]
 mod watch;
@@ -108,11 +112,11 @@ Otherwise, run `dotter undeploy` as root, remove cache.toml and cache/ folders, 
             init::init(opt).context("initalize directory")?;
         }
         #[cfg(feature = "watch")]
-        args::Action::Watch => {
+        args::Action::Watch { no_tui } => {
             debug!("Watching...");
             tokio::runtime::Runtime::new()
                 .expect("create a tokio runtime")
-                .block_on(watch::watch(opt))
+                .block_on(watch::watch(opt, no_tui))
                 .context("watch repository")?;
         }
         args::Action::GenCompletions { shell, to } => {

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use crate::actions::{self, ActionRunner, RealActionRunner};
 use crate::args::Options;
-use crate::config::{self, Cache, FileTarget, SymbolicTarget, TemplateTarget};
+use crate::config::{self, Cache, FileTarget, Files, SymbolicTarget, TemplateTarget};
 use crate::display_error;
 use crate::filesystem::{self, Filesystem, load_file};
 use crate::handlebars_helpers::create_new_handlebars;
@@ -64,56 +64,7 @@ pub fn deploy(opt: &Options) -> Result<bool> {
 
     // === Re-structure configuration ===
 
-    // On Windows, you need developer mode to create symlinks.
-    let symlinks_enabled = if filesystem::symlinks_enabled(&PathBuf::from("DOTTER_SYMLINK_TEST"))
-        .context("check whether symlinks are enabled")?
-    {
-        true
-    } else {
-        warn!(
-            "No permission to create symbolic links.\n
-On Windows, in order to create symbolic links you need to enable Developer Mode.\n
-Proceeding by copying instead of symlinking."
-        );
-        false
-    };
-
-    let mut desired_symlinks = BTreeMap::<PathBuf, SymbolicTarget>::new();
-    let mut desired_templates = BTreeMap::<PathBuf, TemplateTarget>::new();
-
-    for (source, target) in config.files {
-        if symlinks_enabled {
-            match target {
-                FileTarget::Automatic(target) => {
-                    if filesystem::is_template(&source)
-                        .context(format!("check whether {source:?} is a template"))?
-                    {
-                        desired_templates.insert(source, target.into());
-                    } else {
-                        desired_symlinks.insert(source, target.into());
-                    }
-                }
-                FileTarget::Symbolic(target) => {
-                    desired_symlinks.insert(source, target);
-                }
-                FileTarget::ComplexTemplate(target) => {
-                    desired_templates.insert(source, target);
-                }
-            }
-        } else {
-            match target {
-                FileTarget::Automatic(target) => {
-                    desired_templates.insert(source, target.into());
-                }
-                FileTarget::Symbolic(target) => {
-                    desired_templates.insert(source, target.into_template());
-                }
-                FileTarget::ComplexTemplate(target) => {
-                    desired_templates.insert(source, target);
-                }
-            }
-        }
-    }
+    let (desired_symlinks, desired_templates) = desired_files(config.files)?;
 
     // === Perform deployment ===
 
@@ -162,6 +113,68 @@ Proceeding by copying instead of symlinking."
     }
 
     Ok(summary.error_occurred())
+}
+
+/// Splits the configured files into symlinks and templates, the way they will be deployed.
+#[allow(clippy::type_complexity)]
+pub(crate) fn desired_files(
+    files: Files,
+) -> Result<(
+    BTreeMap<PathBuf, SymbolicTarget>,
+    BTreeMap<PathBuf, TemplateTarget>,
+)> {
+    // On Windows, you need developer mode to create symlinks.
+    let symlinks_enabled = if filesystem::symlinks_enabled(&PathBuf::from("DOTTER_SYMLINK_TEST"))
+        .context("check whether symlinks are enabled")?
+    {
+        true
+    } else {
+        warn!(
+            "No permission to create symbolic links.\n
+On Windows, in order to create symbolic links you need to enable Developer Mode.\n
+Proceeding by copying instead of symlinking."
+        );
+        false
+    };
+
+    let mut desired_symlinks = BTreeMap::<PathBuf, SymbolicTarget>::new();
+    let mut desired_templates = BTreeMap::<PathBuf, TemplateTarget>::new();
+
+    for (source, target) in files {
+        if symlinks_enabled {
+            match target {
+                FileTarget::Automatic(target) => {
+                    if filesystem::is_template(&source)
+                        .context(format!("check whether {source:?} is a template"))?
+                    {
+                        desired_templates.insert(source, target.into());
+                    } else {
+                        desired_symlinks.insert(source, target.into());
+                    }
+                }
+                FileTarget::Symbolic(target) => {
+                    desired_symlinks.insert(source, target);
+                }
+                FileTarget::ComplexTemplate(target) => {
+                    desired_templates.insert(source, target);
+                }
+            }
+        } else {
+            match target {
+                FileTarget::Automatic(target) => {
+                    desired_templates.insert(source, target.into());
+                }
+                FileTarget::Symbolic(target) => {
+                    desired_templates.insert(source, target.into_template());
+                }
+                FileTarget::ComplexTemplate(target) => {
+                    desired_templates.insert(source, target);
+                }
+            }
+        }
+    }
+
+    Ok((desired_symlinks, desired_templates))
 }
 
 pub fn undeploy(opt: &Options) -> Result<bool> {

@@ -34,6 +34,7 @@ similar = { version = "3.2.1", features = ["inline"] }
 dialoguer = { version = "0.12.0", default-features = false }
 anstream = "1.0.0"
 anstyle = "1.0.14"
+ratatui = "0.29.0"
 
 [features]
 default = ["scripting", "watch"]

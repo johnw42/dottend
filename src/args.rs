@@ -101,10 +101,18 @@ pub enum Action {
     /// directory pointing to a dummy value and a local.toml that selects that package.
     Init,
 
-    /// Run continuously, watching the repository for changes and deploying as soon as they
-    /// happen. Can be ran with `--dry-run`
+    /// Run continuously, watching the repository and the deployed files for changes.
+    ///
+    /// In a terminal, this opens an interactive view of the differences between the repository
+    /// and the installed files, where each change can be deployed or copied back into the
+    /// repository. Otherwise, or with `--no-tui`, changes are deployed as soon as they happen.
+    /// Can be ran with `--dry-run`
     #[cfg(feature = "watch")]
-    Watch,
+    Watch {
+        /// Deploy changes automatically instead of opening the interactive view
+        #[clap(long)]
+        no_tui: bool,
+    },
 
     /// Generate shell completions
     GenCompletions {

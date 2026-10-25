@@ -7,7 +7,7 @@
 use std::fmt::Display;
 use std::io::{self, IsTerminal, Write};
 use std::path::{MAIN_SEPARATOR, Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use anstyle::{AnsiColor, Style};
 use crossterm::style::Stylize;
@@ -95,7 +95,7 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record<'_>) {
-        if !self.enabled(record.metadata()) {
+        if !self.enabled(record.metadata()) || capture(record.level(), record.args().to_string()) {
             return;
         }
 
@@ -153,10 +153,63 @@ pub fn init_logger(level: LevelFilter) {
     .unwrap();
 }
 
+// === Capture ===
+
+/// A message collected while capturing.
+#[cfg_attr(not(feature = "watch"), allow(dead_code))]
+pub struct Captured {
+    pub level: Level,
+    pub message: String,
+}
+
+static CAPTURED: Mutex<Option<Vec<Captured>>> = Mutex::new(None);
+
+/// Starts collecting log records and subprocess output instead of writing them to the terminal,
+/// for while a fullscreen interface owns it. Prompts answer with their default while capturing.
+#[cfg_attr(not(feature = "watch"), allow(dead_code))]
+pub fn start_capture() {
+    *CAPTURED.lock().unwrap() = Some(Vec::new());
+}
+
+#[cfg_attr(not(feature = "watch"), allow(dead_code))]
+pub fn stop_capture() {
+    *CAPTURED.lock().unwrap() = None;
+}
+
+pub fn capturing() -> bool {
+    CAPTURED.lock().unwrap().is_some()
+}
+
+/// Collects a message if capturing. Returns whether it was collected.
+pub fn capture(level: Level, message: String) -> bool {
+    match CAPTURED.lock().unwrap().as_mut() {
+        Some(captured) => {
+            captured.push(Captured { level, message });
+            true
+        }
+        None => false,
+    }
+}
+
+/// Returns the messages collected since the last call.
+#[cfg_attr(not(feature = "watch"), allow(dead_code))]
+pub fn take_captured() -> Vec<Captured> {
+    CAPTURED
+        .lock()
+        .unwrap()
+        .as_mut()
+        .map(std::mem::take)
+        .unwrap_or_default()
+}
+
 // === Prompts ===
 
 /// Asks whether to delete a directory that was left empty, defaulting to no.
 pub fn confirm_delete_empty_dir(dir: &Path) -> bool {
+    if capturing() {
+        return false;
+    }
+
     if fancy() && io::stdin().is_terminal() && io::stderr().is_terminal() {
         use dialoguer::{Confirm, console::Term, theme::ColorfulTheme};
 

@@ -4,14 +4,19 @@ See also: [Overview](README.md).
 
 ## Dependencies and toolchain
 
-- **`rust-version = 1.85`:**
-  - That's why ratatui is 0.29: 0.30 needs Rust 1.88.
-  - ratatui 0.29 depends on crossterm 0.28 while dotter uses 0.29 directly, so two crossterm
-    copies are built. TUI code must use `ratatui::crossterm::*` throughout so the two never mix.
+- **`rust-version` tracks the latest stable Rust** (currently 1.99). The user wants the fork on
+  the newest compiler, so raise it freely, and use new language features (clippy pushes let
+  chains, for example).
+- **Dependencies:** keep them up to date within their major versions with `cargo update`. Major
+  upgrades still need checking for breaking changes; `hostname` 0.4, `mockall` 0.15 and
+  `shellexpand` 3 are available but not yet adopted.
+- **ratatui** is 0.30 and uses the same crossterm (0.29) that dotter uses directly, so only one
+  crossterm is built. TUI code uses it through `ratatui::crossterm`.
 - **watchexec** is required at ≥ 8.4 (for `Filterer::check_dir`), with globset filterer
-  ≥ 8.0.6. `cargo install` without `--locked` ignores `Cargo.lock` and takes the newest
-  compatible versions. That's how a watchexec-version-specific bug showed up in the user's build
-  but not in tests. Tell users to `cargo install --locked --path .`.
+  ≥ 8.0.6. watchexec 8.4's dependencies need Rust 1.87. `cargo install` without `--locked`
+  ignores `Cargo.lock` and takes the newest compatible versions, which is how a
+  watchexec-version-specific bug once showed up in the user's build but not in tests. Install
+  with `cargo install --locked --path .`.
 - **Plain mode** still needs simplelog, crossterm and diff. **Fancy mode** uses anstream,
   anstyle, similar, and dialoguer (default features off).
 
@@ -22,10 +27,11 @@ See also: [Overview](README.md).
   subcommand help text changes.
 - `cargo publish --dry-run`, `cargo test`, `cargo fmt --check`, and `cargo clippy -- -D warnings`.
 
-**Local equivalents:** add the targets with `rustup target add x86_64-pc-windows-msvc
-x86_64-apple-darwin`; `cargo check` for them works without a linker. Also run clippy with
-`--no-default-features`, since `changes.rs` and `tui.rs` disappear and capture functions become
-dead code (handled with `cfg_attr(not(feature = "watch"), allow(dead_code))`).
+**Local equivalents:** run clippy both normally and with `--no-default-features`, since
+`changes.rs` and `tui.rs` disappear and capture functions become dead code (handled with
+`cfg_attr(not(feature = "watch"), allow(dead_code))`). Checking the Windows and macOS targets
+locally no longer works out of the box: some dependencies' build scripts (`psm`, `stacker`) need
+a C compiler for the target. Leave those to CI unless the user asks.
 
 ## Testing
 

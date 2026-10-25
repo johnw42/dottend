@@ -651,18 +651,18 @@ impl<'a> App<'a> {
             .into_iter()
             .map(|line| Line::styled(line, style))
             .collect();
-        if let Some(reason) = &change.copy_back_blocked {
-            if !matches!(
+        if let Some(reason) = &change.copy_back_blocked
+            && !matches!(
                 change.state,
                 State::NotInstalled | State::Removed | State::Untracked | State::Problem(_)
-            ) {
-                let text = format!("Can't copy to the repository: {reason}");
-                lines.extend(
-                    wrap(&text, inner_width)
-                        .into_iter()
-                        .map(|l| Line::from(l).dim()),
-                );
-            }
+            )
+        {
+            let text = format!("Can't copy to the repository: {reason}");
+            lines.extend(
+                wrap(&text, inner_width)
+                    .into_iter()
+                    .map(|l| Line::from(l).dim()),
+            );
         }
 
         if let Some(diff) = &change.diff {

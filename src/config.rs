@@ -592,10 +592,34 @@ impl UnixUser {
             UnixUser::Uid(id) => format!("{id}"),
         }
     }
+
+    /// The user's id, or None if there's no such user.
+    pub fn uid(&self) -> Option<u32> {
+        match self {
+            UnixUser::Uid(id) => u32::try_from(*id).ok(),
+            UnixUser::Name(name) => {
+                let name = std::ffi::CString::new(name.as_str()).ok()?;
+                // SAFETY: getpwnam takes a NUL-terminated string and returns either null or a
+                // pointer to a static passwd entry, which is read immediately.
+                let entry = unsafe { libc::getpwnam(name.as_ptr()) };
+                (!entry.is_null()).then(|| unsafe { (*entry).pw_uid })
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
+    #[cfg(unix)]
+    #[test]
+    fn unix_user_uid() {
+        use super::UnixUser;
+        assert_eq!(UnixUser::Uid(0).uid(), Some(0));
+        assert_eq!(UnixUser::Uid(-1).uid(), None);
+        assert_eq!(UnixUser::Name("root".into()).uid(), Some(0));
+        assert_eq!(UnixUser::Name("no-such-user-for-dotter".into()).uid(), None);
+    }
+
     use super::*;
 
     #[test]

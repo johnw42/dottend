@@ -253,13 +253,6 @@ impl RealFilesystem {
         }
         Command::new("sudo")
     }
-
-    fn is_owned_by_user(path: &Path) -> Result<bool> {
-        use std::os::unix::fs::MetadataExt;
-        let file_uid = path.metadata().context("get file metadata")?.uid();
-        let process_uid = unsafe { libc::geteuid() };
-        Ok(file_uid == process_uid)
-    }
 }
 
 #[cfg(unix)]
@@ -449,9 +442,15 @@ impl Filesystem for RealFilesystem {
     }
 
     fn set_owner(&mut self, file: &Path, owner: &Option<UnixUser>) -> Result<()> {
-        if Self::is_owned_by_user(file).context("detect if file is owned by the current user")?
-            && owner.is_none()
-        {
+        use std::os::unix::fs::MetadataExt;
+
+        // Without an owner, the file should belong to the current user
+        let wanted_uid = match owner {
+            Some(owner) => owner.uid(),
+            None => Some(unsafe { libc::geteuid() }),
+        };
+        let file_uid = file.symlink_metadata().context("get file metadata")?.uid();
+        if wanted_uid == Some(file_uid) {
             // Nothing to do, no need to elevate
             return Ok(());
         }
@@ -482,6 +481,21 @@ impl Filesystem for RealFilesystem {
         target: &Path,
         owner: &Option<UnixUser>,
     ) -> Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+
+        let mode = |path: &Path| -> Result<u32> {
+            Ok(path
+                .metadata()
+                .context("get metadata")?
+                .permissions()
+                .mode()
+                & 0o7777)
+        };
+        if mode(target).ok() == Some(mode(source).context("read source permissions")?) {
+            // Nothing to do, no need to elevate
+            return Ok(());
+        }
+
         if let Some(owner) = owner {
             let success = self
                 .sudo(format!(

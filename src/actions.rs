@@ -484,7 +484,22 @@ pub fn update_template(
             );
             fs.set_owner(&target.target, &target.owner)
                 .context("set target file owner")?;
-            perform_template_deploy(source, cache, Some(target), fs, handlebars, variables)
+            let rendered = render_template(source, Some(target), fs, handlebars, variables)?;
+
+            // The target matches the cache, so if the cache matches the fresh render too, the
+            // contents are already right. Rewriting them anyway would mean using sudo for files
+            // with an owner on every deploy.
+            if fs
+                .read_to_string(cache)
+                .is_ok_and(|cached| cached == rendered)
+            {
+                debug!("Template is up to date");
+                fs.copy_permissions(source, &target.target, &target.owner)
+                    .context("copy permissions from source to target")?;
+                return Ok(true);
+            }
+
+            install_rendered_template(source, cache, Some(target), fs, rendered)
                 .context("perform template cache")?;
             Ok(true)
         }
@@ -571,6 +586,17 @@ pub(crate) fn perform_template_deploy(
     handlebars: &Handlebars<'_>,
     variables: &Variables,
 ) -> Result<()> {
+    let rendered = render_template(source, target, fs, handlebars, variables)?;
+    install_rendered_template(source, cache, target, fs, rendered)
+}
+
+fn render_template(
+    source: &Path,
+    target: Option<&TemplateTarget>,
+    fs: &mut dyn Filesystem,
+    handlebars: &Handlebars<'_>,
+    variables: &Variables,
+) -> Result<String> {
     let file_contents = fs
         .read_to_string(source)
         .context("read template source file")?;
@@ -578,10 +604,19 @@ pub(crate) fn perform_template_deploy(
         Some(t) => t.apply_actions(file_contents),
         None => file_contents,
     };
-    let rendered = handlebars
+    handlebars
         .render_template(&file_contents, variables)
-        .context("render template")?;
+        .context("render template")
+}
 
+/// Writes a rendered template to the cache, and copies it to the target if there is one.
+fn install_rendered_template(
+    source: &Path,
+    cache: &Path,
+    target: Option<&TemplateTarget>,
+    fs: &mut dyn Filesystem,
+    rendered: String,
+) -> Result<()> {
     // Cache
     fs.create_dir_all(cache.parent().context("get parent of cache file")?, &None)
         .context("create parent for cache file")?;
@@ -597,4 +632,80 @@ pub(crate) fn perform_template_deploy(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::filesystem::MockFilesystem;
+    use mockall::predicate::*;
+
+    fn path_eq(expected: &str) -> impl Fn(&Path) -> bool + '_ {
+        move |actual| actual == Path::new(expected)
+    }
+
+    /// Expects an update of template `src` -> `out` whose cache holds `cached`, while the source
+    /// renders to "contents\n".
+    fn expect_update(fs: &mut MockFilesystem, cached: &'static str) {
+        fs.expect_compare_template()
+            .with(function(path_eq("out")), function(path_eq("cache/src")))
+            .returning(|_, _| Ok(TemplateComparison::Identical));
+        fs.expect_set_owner()
+            .with(function(path_eq("out")), eq(None))
+            .times(1)
+            .returning(|_, _| Ok(()));
+        fs.expect_read_to_string()
+            .with(function(path_eq("src")))
+            .returning(|_| Ok("contents\n".into()));
+        fs.expect_read_to_string()
+            .with(function(path_eq("cache/src")))
+            .returning(move |_| Ok(cached.into()));
+        fs.expect_copy_permissions()
+            .with(function(path_eq("src")), function(path_eq("out")), eq(None))
+            .times(1)
+            .returning(|_, _, _| Ok(()));
+    }
+
+    fn update(fs: &mut MockFilesystem) -> Result<bool> {
+        update_template(
+            Path::new("src"),
+            Path::new("cache/src"),
+            &"out".into(),
+            fs,
+            &Handlebars::new(),
+            &Variables::new(),
+            false,
+            3,
+        )
+    }
+
+    #[test]
+    fn unchanged_template_is_not_rewritten() {
+        let mut fs = MockFilesystem::new();
+        expect_update(&mut fs, "contents\n");
+        // No write or copy_file expectations: rewriting the file would fail the test
+
+        assert!(update(&mut fs).unwrap());
+    }
+
+    #[test]
+    fn changed_template_is_rewritten() {
+        let mut fs = MockFilesystem::new();
+        expect_update(&mut fs, "old contents\n");
+        fs.expect_create_dir_all().returning(|_, _| Ok(()));
+        fs.expect_write()
+            .with(function(path_eq("cache/src")), eq("contents\n".to_string()))
+            .times(1)
+            .returning(|_, _| Ok(()));
+        fs.expect_copy_file()
+            .with(
+                function(path_eq("cache/src")),
+                function(path_eq("out")),
+                eq(None),
+            )
+            .times(1)
+            .returning(|_, _, _| Ok(()));
+
+        assert!(update(&mut fs).unwrap());
+    }
 }

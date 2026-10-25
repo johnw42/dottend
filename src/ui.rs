@@ -120,7 +120,6 @@ pub fn init_logger(level: LevelFilter) {
 // === Capture ===
 
 /// A message collected while capturing.
-#[cfg_attr(not(feature = "watch"), allow(dead_code))]
 pub struct Captured {
     pub level: Level,
     pub message: String,
@@ -130,12 +129,10 @@ static CAPTURED: Mutex<Option<Vec<Captured>>> = Mutex::new(None);
 
 /// Starts collecting log records and subprocess output instead of writing them to the terminal,
 /// for while a fullscreen interface owns it. Prompts answer with their default while capturing.
-#[cfg_attr(not(feature = "watch"), allow(dead_code))]
 pub fn start_capture() {
     *CAPTURED.lock().unwrap() = Some(Vec::new());
 }
 
-#[cfg_attr(not(feature = "watch"), allow(dead_code))]
 pub fn stop_capture() {
     *CAPTURED.lock().unwrap() = None;
 }
@@ -156,7 +153,6 @@ pub fn capture(level: Level, message: String) -> bool {
 }
 
 /// Returns the messages collected since the last call.
-#[cfg_attr(not(feature = "watch"), allow(dead_code))]
 pub fn take_captured() -> Vec<Captured> {
     CAPTURED
         .lock()

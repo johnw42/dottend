@@ -74,6 +74,11 @@ pub struct Options {
     #[clap(short = 'y', long = "noconfirm", global = true)]
     pub noconfirm: bool,
 
+    /// Don't open the interactive interface: `deploy` just reports files it couldn't deploy, and
+    /// `watch` deploys changes automatically
+    #[clap(long, global = true)]
+    pub no_tui: bool,
+
     /// Take standard input as an additional files/variables patch, added after evaluating
     /// `local.toml`. Assumes --noconfirm flag because all of stdin is taken as the patch.
     #[clap(short, long, value_parser, global = true)]
@@ -90,6 +95,9 @@ pub struct Options {
 #[derive(Debug, Clone, Subcommand, Default)]
 pub enum Action {
     /// Deploy the files to their respective targets. This is the default subcommand.
+    ///
+    /// In a terminal, if some files can't be deployed (for example because an installed file was
+    /// changed), an interactive view opens to resolve them. Use `--no-tui` to only report them.
     #[default]
     Deploy,
 
@@ -108,11 +116,7 @@ pub enum Action {
     /// repository. Otherwise, or with `--no-tui`, changes are deployed as soon as they happen.
     /// Can be ran with `--dry-run`
     #[cfg(feature = "watch")]
-    Watch {
-        /// Deploy changes automatically instead of opening the interactive view
-        #[clap(long)]
-        no_tui: bool,
-    },
+    Watch,
 
     /// Generate shell completions
     GenCompletions {

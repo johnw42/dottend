@@ -1,4 +1,5 @@
-//! The fullscreen interface of `dotter watch`: lists the differences between the repository and
+//! The fullscreen interface of `dotter watch`, also opened by `dotter deploy` when files couldn't
+//! be deployed: lists the differences between the repository and
 //! the installed files, shows each one as a diff, and resolves them in either direction.
 
 use anyhow::Result;
@@ -26,6 +27,7 @@ use crate::ui;
 /// Sent to the interface by the file watcher, and by the thread reading terminal input.
 pub enum Message {
     /// Watched files changed
+    #[cfg_attr(not(feature = "watch"), allow(dead_code))]
     Refresh,
     Quit,
     Terminal(Event),
@@ -34,15 +36,57 @@ pub enum Message {
 const MAX_MESSAGES: usize = 100;
 const VISIBLE_MESSAGES: usize = 4;
 
+/// Which command the interface was opened by.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    /// `dotter watch`: the files are watched and the interface refreshes when they change
+    #[cfg_attr(not(feature = "watch"), allow(dead_code))]
+    Watch,
+    /// `dotter deploy`: opened to resolve the files a deploy couldn't handle
+    Deploy,
+}
+
+/// Whether `dotter deploy` should open the interface to resolve files it couldn't deploy: only when
+/// someone is at a terminal to use it, and it could change something.
+pub fn can_resolve_interactively(opt: &Options) -> bool {
+    use std::io::IsTerminal;
+    !opt.no_tui
+        && !opt.dry_run
+        && !opt.quiet
+        // stdin held the patch, so it can't also provide keypresses
+        && !opt.patch
+        && std::io::stdin().is_terminal()
+        && std::io::stdout().is_terminal()
+}
+
+/// Opens the interface after a deploy that couldn't deploy some files. Returns whether everything
+/// was resolved.
+pub fn resolve_after_deploy(opt: &Options) -> Result<bool> {
+    let message = (
+        Level::Warn,
+        "Some files weren't deployed. Resolve them here; the deploy's output shows when you quit"
+            .to_string(),
+    );
+    run(
+        opt,
+        Mode::Deploy,
+        std::sync::mpsc::channel(),
+        message,
+        |_| {},
+    )
+}
+
 /// Runs the interface until the user quits or a `Message::Quit` arrives, starting with
 /// `first_message` in the message area. `watch_targets` is called with the installed locations of
-/// all deployed files whenever they change, so they can be watched.
+/// all deployed files whenever they change, so they can be watched. Returns whether everything
+/// was resolved: the configuration loads and no differences are left.
 pub fn run(
     opt: &Options,
+    mode: Mode,
     (sender, messages): (Sender<Message>, Receiver<Message>),
     first_message: (Level, String),
     mut watch_targets: impl FnMut(&BTreeSet<PathBuf>),
-) -> Result<()> {
+) -> Result<bool> {
     // Collect log output so it doesn't draw over the interface. Only errors are shown, since
     // warnings about forcing changes are expected here.
     ui::start_capture();
@@ -51,7 +95,7 @@ pub fn run(
 
     let mut terminal = TerminalGuard(ratatui::init());
     let input = InputReader::spawn(sender);
-    let mut app = App::new(opt);
+    let mut app = App::new(opt, mode);
     let mut watched_targets = BTreeSet::new();
     app.message(first_message.0, first_message.1);
     app.refresh();
@@ -120,7 +164,7 @@ pub fn run(
     drop(terminal);
     log::set_max_level(previous_level);
     ui::stop_capture();
-    result
+    result.map(|()| app.load_error.is_none() && app.changes.is_empty())
 }
 
 /// Reads terminal input on its own thread and sends it as messages.
@@ -263,6 +307,7 @@ struct Elevation {
 
 struct App<'a> {
     opt: &'a Options,
+    mode: Mode,
     plan: Option<Plan>,
     /// Why the configuration couldn't be loaded
     load_error: Option<String>,
@@ -279,9 +324,10 @@ struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    fn new(opt: &'a Options) -> App<'a> {
+    fn new(opt: &'a Options, mode: Mode) -> App<'a> {
         App {
             opt,
+            mode,
             plan: None,
             load_error: None,
             changes: Vec::new(),
@@ -575,7 +621,7 @@ impl<'a> App<'a> {
                 .block(Block::bordered().title(" Configuration error "));
             frame.render_widget(paragraph, main);
         } else if self.changes.is_empty() {
-            draw_up_to_date(frame, main);
+            draw_up_to_date(frame, main, self.mode);
         } else {
             let [list, diff] =
                 Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
@@ -598,11 +644,11 @@ impl<'a> App<'a> {
             (None, 1) => Span::raw("1 change").yellow(),
             (None, n) => Span::raw(format!("{n} changes")).yellow(),
         };
-        let mut spans = vec![
-            Span::raw(" dotter watch ").bold().reversed(),
-            Span::raw("  "),
-            status,
-        ];
+        let title = match self.mode {
+            Mode::Watch => " dotter watch ",
+            Mode::Deploy => " dotter deploy ",
+        };
+        let mut spans = vec![Span::raw(title).bold().reversed(), Span::raw("  "), status];
         if self.opt.dry_run {
             spans.push(Span::raw("  dry run: read-only").dim());
         }
@@ -781,10 +827,14 @@ fn is_eligible(change: &Change, direction: Direction) -> bool {
     }
 }
 
-fn draw_up_to_date(frame: &mut Frame<'_>, area: Rect) {
+fn draw_up_to_date(frame: &mut Frame<'_>, area: Rect, mode: Mode) {
+    let detail = match mode {
+        Mode::Watch => "Watching the repository and the installed files for changes...",
+        Mode::Deploy => "Press q to quit.",
+    };
     let text = Text::from(vec![
         Line::from("✓ Everything is up to date").green().bold(),
-        Line::from("Watching the repository and the installed files for changes...").dim(),
+        Line::from(detail).dim(),
     ])
     .centered();
     let [area] = Layout::vertical([Constraint::Length(2)])

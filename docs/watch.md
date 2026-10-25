@@ -2,7 +2,7 @@
 
 See also: [Interactive TUI](tui.md), [Development](development.md).
 
-`watch(opt, no_tui)` picks one of two modes.
+`watch(opt)` picks one of two modes. `--no-tui` is a global option, shared with `deploy`.
 
 ## Auto-deploy mode
 

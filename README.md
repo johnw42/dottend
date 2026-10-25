@@ -19,6 +19,7 @@ Dotter aims to solve all those problems by providing a flexible configuration an
 
 # What's different in this fork
 - **Interactive `dotter watch`.** In a terminal, `dotter watch` deploys once, then opens a fullscreen view of every difference between the repository and the installed files, refreshing as either changes. Each change is shown as a diff, and you can deploy the repository's version or copy the installed file back into the repository (offered only when nothing would be lost, so never for real templates). It also watches the installed files, so edits made outside the repository show up immediately. When a change needs root, it steps aside for `sudo` to ask for your password. Use `dotter watch --no-tui` for the old behavior of deploying on every change.
+- **Resolve deploy problems interactively.** When `dotter deploy` can't deploy some files (for example because an installed file was edited), it opens the same view on just those files, so you can deploy or copy back each one. It only does this in a terminal; use `--no-tui` to only report the problems.
 - **New output format.** Errors and warnings are labelled `error:`/`warning:`, file actions read like `+ symlink   bashrc → ~/.bashrc`, diffs have `+`/`-` signs with changed words highlighted, and deploys end with a summary such as `Deployed: 2 added, 1 skipped`. Colors honor `NO_COLOR` and `CLICOLOR_FORCE`. The output differs from the original Dotter's, so scripts that parse it may need updating.
 - **Watch fixes.** `dotter watch` no longer redeploys in an endless loop (also fixed upstream), no longer prints errors for git's short-lived lock files, and exits when its terminal is closed.
 - **Requires the latest stable Rust** (currently 1.99).
@@ -88,6 +89,8 @@ Options:
           Force - instead of skipping, overwrite target files if their content is unexpected. Overrides --dry-run
   -y, --noconfirm
           Assume "yes" instead of prompting when removing empty directories
+      --no-tui
+          Don't open the interactive interface: `deploy` just reports files it couldn't deploy, and `watch` deploys changes automatically
   -p, --patch
           Take standard input as an additional files/variables patch, added after evaluating `local.toml`. Assumes --noconfirm flag because all of stdin is taken as the patch
       --diff-context-lines <DIFF_CONTEXT_LINES>

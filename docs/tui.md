@@ -2,6 +2,20 @@
 
 See also: [Watch mode](watch.md), [Output](output.md), [Deploying](deploy.md).
 
+The same interface serves two commands (`tui::Mode`):
+
+- **`dotter watch`** (`Mode::Watch`): see [Watch mode](watch.md). It refreshes whenever the
+  repository or an installed file changes.
+- **`dotter deploy`** (`Mode::Deploy`): when a deploy skips or fails files, `main.rs` calls
+  `tui::resolve_after_deploy` if `tui::can_resolve_interactively` allows it (stdin and stdout
+  are terminals, and no `--no-tui`, `--dry-run`, `-q` or `--patch`). Nothing is watched; `r`
+  refreshes by hand. The deploy's own output stays in the terminal scrollback. The exit status is
+  0 only if `run` reports everything resolved (the config loads and no differences remain).
+
+`tui::run` takes the mode, a message channel, the first message, and a callback for the set of
+installed targets (used by watch mode to update what it watches; a no-op for deploy). The mode
+only changes the header title and the text of the "up to date" screen.
+
 ## `changes::Plan`
 
 `Plan` is the loaded config plus cache. `Plan::changes()` compares each file's **installed file

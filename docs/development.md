@@ -27,8 +27,8 @@ See also: [Overview](README.md).
 - `cargo publish --dry-run`, `cargo test`, `cargo fmt --check`, and `cargo clippy -- -D warnings`.
 
 **Local equivalents:** run clippy both normally and with `--no-default-features`, since
-`changes.rs` and `tui.rs` disappear and capture functions become dead code (handled with
-`cfg_attr(not(feature = "watch"), allow(dead_code))`). Checking the Windows and macOS targets
+`watch.rs` disappears and some TUI items only it uses (`tui::Message::Refresh`, `tui::Mode::Watch`)
+become dead code (handled with `cfg_attr(not(feature = "watch"), allow(dead_code))`). Checking the Windows and macOS targets
 locally no longer works out of the box: some dependencies' build scripts (`psm`, `stacker`) need
 a C compiler for the target. Leave those to CI unless the user asks.
 

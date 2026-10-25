@@ -39,10 +39,10 @@ Subcommands (`src/args.rs`): `deploy` (default), `undeploy`, `init`, `watch` (fe
 | `init.rs` | Writes a starter config listing every file in the directory. |
 | `ui.rs` | Styles, the logger, capture mode, prompts. |
 | `watch.rs` | `dotter watch`: auto-deploy mode and interactive mode (watchexec setup and filtering). |
-| `changes.rs` | Interactive mode only: finds differences between the repo and the installed files (`Plan`, `Change`) and resolves them (`Plan::apply`). |
-| `tui.rs` | Interactive mode only: the ratatui interface. |
+| `changes.rs` | For the TUI: finds differences between the repo and the installed files (`Plan`, `Change`) and resolves them (`Plan::apply`). |
+| `tui.rs` | The ratatui interface, opened by `dotter watch` and by `dotter deploy` when files couldn't be deployed. |
 
-`changes.rs` and `tui.rs` are compiled only with feature `watch`.
+Only `watch.rs` (and watchexec) depends on feature `watch`; `changes.rs` and `tui.rs` are always compiled, since `deploy` uses them too.
 
 ## History
 

@@ -3,7 +3,6 @@ extern crate log;
 
 mod actions;
 mod args;
-#[cfg(feature = "watch")]
 mod changes;
 mod config;
 mod deploy;
@@ -12,7 +11,6 @@ mod filesystem;
 mod handlebars_helpers;
 mod hooks;
 mod init;
-#[cfg(feature = "watch")]
 mod tui;
 mod ui;
 #[cfg(feature = "watch")]
@@ -89,7 +87,11 @@ Otherwise, run `dotter undeploy` as root, remove cache.toml and cache/ folders, 
         args::Action::Deploy => {
             debug!("Deploying...");
             if deploy::deploy(&opt).context("deploy")? {
-                // An error occurred
+                // Some files were skipped or failed. Let the user resolve them if they can.
+                if tui::can_resolve_interactively(&opt) {
+                    return tui::resolve_after_deploy(&opt)
+                        .context("resolve files that weren't deployed");
+                }
                 return Ok(false);
             }
         }
@@ -105,11 +107,11 @@ Otherwise, run `dotter undeploy` as root, remove cache.toml and cache/ folders, 
             init::init(opt).context("initalize directory")?;
         }
         #[cfg(feature = "watch")]
-        args::Action::Watch { no_tui } => {
+        args::Action::Watch => {
             debug!("Watching...");
             tokio::runtime::Runtime::new()
                 .expect("create a tokio runtime")
-                .block_on(watch::watch(opt, no_tui))
+                .block_on(watch::watch(opt))
                 .context("watch repository")?;
         }
         args::Action::GenCompletions { shell, to } => {

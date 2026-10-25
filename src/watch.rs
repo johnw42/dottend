@@ -126,10 +126,10 @@ fn deploy_and_report(opt: &Options, changes_detected: bool) -> bool {
     }
 }
 
-pub(crate) async fn watch(opt: Options, no_tui: bool) -> Result<()> {
+pub(crate) async fn watch(opt: Options) -> Result<()> {
     // The interface needs a terminal, and stdin can't hold both a patch and keypresses
     use std::io::IsTerminal;
-    if no_tui || !std::io::stdout().is_terminal() || opt.patch {
+    if opt.no_tui || !std::io::stdout().is_terminal() || opt.patch {
         watch_and_deploy(opt).await
     } else {
         watch_interactive(opt).await
@@ -224,6 +224,7 @@ async fn watch_interactive(opt: Options) -> Result<()> {
     let interface = tokio::task::spawn_blocking(move || {
         tui::run(
             &opt,
+            tui::Mode::Watch,
             (input_sender, receiver),
             startup_message,
             |installed| {
@@ -247,5 +248,5 @@ async fn watch_interactive(opt: Options) -> Result<()> {
 
     let result = interface.await.context("run interactive interface");
     main.abort();
-    result?
+    result?.map(|_| ())
 }

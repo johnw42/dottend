@@ -50,6 +50,22 @@ pub(crate) fn display_error(error: anyhow::Error) {
     error!("{}", error_message);
 }
 
+/// Fails with directions to rename the configuration directory if the repository still uses the
+/// `.dotter/` name from before the fork was renamed, instead of a bare "file not found".
+fn check_old_config_dir(global_config: &std::path::Path) -> Result<()> {
+    if global_config == std::path::Path::new(".dottend/global.toml")
+        && !global_config.exists()
+        && std::path::Path::new(".dotter/global.toml").exists()
+    {
+        return Err(anyhow::anyhow!(
+            "this repository uses the old .dotter/ directory, which dottend now calls .dottend/. \
+             Rename it with `mv .dotter .dottend`."
+        )
+        .context("find .dottend/global.toml"));
+    }
+    Ok(())
+}
+
 /// Returns true if program should exit with success status
 fn run() -> Result<bool> {
     // Parse arguments
@@ -83,7 +99,15 @@ Otherwise, run `dottend undeploy` as root, remove cache.toml and cache/ folders,
         }
     }
 
-    match opt.action.clone().unwrap_or_default() {
+    let action = opt.action.clone().unwrap_or_default();
+    if !matches!(
+        action,
+        args::Action::Init | args::Action::GenCompletions { .. }
+    ) {
+        check_old_config_dir(&opt.global_config)?;
+    }
+
+    match action {
         args::Action::Deploy => {
             debug!("Deploying...");
             if deploy::deploy(&opt).context("deploy")? {

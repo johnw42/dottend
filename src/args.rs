@@ -12,7 +12,7 @@ pub struct Options {
         short,
         long,
         value_parser,
-        default_value = ".dotter/global.toml",
+        default_value = ".dottend/global.toml",
         global = true
     )]
     pub global_config: PathBuf,
@@ -22,33 +22,33 @@ pub struct Options {
         short,
         long,
         value_parser,
-        default_value = ".dotter/local.toml",
+        default_value = ".dottend/local.toml",
         global = true
     )]
     pub local_config: PathBuf,
 
     /// Location of cache file
-    #[clap(long, value_parser, default_value = ".dotter/cache.toml")]
+    #[clap(long, value_parser, default_value = ".dottend/cache.toml")]
     pub cache_file: PathBuf,
 
     /// Directory to cache into.
-    #[clap(long, value_parser, default_value = ".dotter/cache")]
+    #[clap(long, value_parser, default_value = ".dottend/cache")]
     pub cache_directory: PathBuf,
 
     /// Location of optional pre-deploy hook
-    #[clap(long, value_parser, default_value = ".dotter/pre_deploy.sh")]
+    #[clap(long, value_parser, default_value = ".dottend/pre_deploy.sh")]
     pub pre_deploy: PathBuf,
 
     /// Location of optional post-deploy hook
-    #[clap(long, value_parser, default_value = ".dotter/post_deploy.sh")]
+    #[clap(long, value_parser, default_value = ".dottend/post_deploy.sh")]
     pub post_deploy: PathBuf,
 
     /// Location of optional pre-undeploy hook
-    #[clap(long, value_parser, default_value = ".dotter/pre_undeploy.sh")]
+    #[clap(long, value_parser, default_value = ".dottend/pre_undeploy.sh")]
     pub pre_undeploy: PathBuf,
 
     /// Location of optional post-undeploy hook
-    #[clap(long, value_parser, default_value = ".dotter/post_undeploy.sh")]
+    #[clap(long, value_parser, default_value = ".dottend/post_undeploy.sh")]
     pub post_undeploy: PathBuf,
 
     /// Dry run - don't do anything, only print information.

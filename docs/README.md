@@ -56,9 +56,10 @@ format aren't supported, and it targets the latest stable Rust.
 - A draft PR (#236) offers upstream a version-agnostic fix for the watcher's vanished-file
   errors, without the `check_dir` forwarding, which would need Rust 1.87 there.
 - The terminal output, TUI, sudo support, and later watcher fixes live only in the fork.
-- The program was renamed from `dotter` to `dottend` to tell it apart from upstream. Its
-  configuration is unchanged for compatibility: it still reads `.dotter/`, and templates still
-  use the `dotter.*` variables.
+- The program was renamed from `dotter` to `dottend` to tell it apart from upstream, and its
+  configuration directory from `.dotter/` to `.dottend/`. `main::check_old_config_dir` explains
+  the rename when a repository only has `.dotter/`. Templates still use the `dotter.*` variables,
+  so existing templates and the upstream wiki's examples keep working.
 - All development happens directly on `main`, the fork's default branch. The old `master` (a
   copy of upstream's) was deleted. Branches for upstream PRs are based on `upstream/master`
   instead.

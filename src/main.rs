@@ -50,22 +50,28 @@ pub(crate) fn display_error(error: anyhow::Error) {
     error!("{}", error_message);
 }
 
-/// Fails with directions to migrate if the repository still uses the `.dotter/` directory from
-/// before the fork was renamed, instead of a bare "file not found". This is the only place the old
-/// name is used.
+/// Fails with directions to migrate if the repository still has upstream's `.dotter/` directory,
+/// instead of a bare "file not found". This is the only place the old name is used. A leftover
+/// `.dotter/` counts even when `dottend/` exists, since `git pull` moves the tracked files but
+/// leaves `local.toml` and the cache behind.
 fn check_old_config_dir(global_config: &std::path::Path) -> Result<()> {
-    if global_config == std::path::Path::new(".dottend/global.toml")
-        && !global_config.exists()
-        && std::path::Path::new(".dotter/global.toml").exists()
+    if global_config != std::path::Path::new("dottend/global.toml")
+        || !std::path::Path::new(".dotter").is_dir()
     {
-        return Err(anyhow::anyhow!(
-            "this repository uses the old .dotter/ directory, which dottend now calls .dottend/. \
-             Rename it with `mv .dotter .dottend`, and rename the `dotter.*` template variables \
-             to `dottend.*` (an `if` on a `dotter.*` variable is now always false)."
-        )
-        .context("find .dottend/global.toml"));
+        return Ok(());
     }
-    Ok(())
+    let action = if std::path::Path::new("dottend").exists() {
+        "Move the files left in .dotter/, such as local.toml, cache.toml and cache/, into \
+         dottend/, then delete .dotter/."
+    } else {
+        "Rename it with `mv .dotter dottend`."
+    };
+    Err(anyhow::anyhow!(
+        "found the old .dotter/ directory; dottend now keeps its configuration in dottend/. \
+         {action} Templates also need the `dottend.*` variables, not `dotter.*` (an `if` on a \
+         `dotter.*` variable is always false)."
+    )
+    .context("find the configuration directory"))
 }
 
 /// Returns true if program should exit with success status

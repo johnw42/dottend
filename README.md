@@ -1,6 +1,6 @@
 > **Dottend is a fork** of [Dotter](https://github.com/SuperCuber/dotter) by SuperCuber, maintained
 > at [johnw42/dottend](https://github.com/johnw42/dottend). Its configuration works like Dotter's,
-> but lives in `.dottend/` instead of `.dotter/`, and the template variables are `dottend.*`
+> but lives in a `dottend/` directory instead of `.dotter/`, and the template variables are `dottend.*`
 > instead of `dotter.*`. It also adds an interactive `dottend watch`, changes the command-line
 > output, and requires the latest stable Rust. See
 > [What's different in this fork](#whats-different-in-this-fork). The text below is adapted from
@@ -23,7 +23,7 @@ Dottend aims to solve all those problems by providing a flexible configuration a
 - **Interactive `dottend watch`.** In a terminal, `dottend watch` deploys once, then opens a fullscreen view of every difference between the repository and the installed files, refreshing as either changes. Each change is shown as a diff, and you can deploy the repository's version or copy the installed file back into the repository (offered only when nothing would be lost, so never for real templates). It also watches the installed files, so edits made outside the repository show up immediately. When a change needs root, it steps aside for `sudo` to ask for your password. Use `dottend watch --no-tui` for the old behavior of deploying on every change.
 - **Resolve deploy problems interactively.** When `dottend deploy` can't deploy some files (for example because an installed file was edited), it opens the same view on just those files, so you can deploy or copy back each one. It only does this in a terminal; use `--no-tui` to only report the problems.
 - **New output format.** Errors and warnings are labelled `error:`/`warning:`, file actions read like `+ symlink   bashrc → ~/.bashrc`, diffs have `+`/`-` signs with changed words highlighted, and deploys end with a summary such as `Deployed: 2 added, 1 skipped`. Colors honor `NO_COLOR` and `CLICOLOR_FORCE`. The output differs from the original Dotter's, so scripts that parse it may need updating.
-- **A new name.** The program is called `dottend`, so it can be installed alongside the original `dotter`, and its configuration lives in `.dottend/` instead of `.dotter/`. To switch a repository over, rename the directory with `mv .dotter .dottend`; dottend says so if it finds only `.dotter/`. The template variables are renamed too, from `dotter.*` to `dottend.*`, like `dottend.packages`.
+- **A new name.** The program is called `dottend`, so it can be installed alongside the original `dotter`, and its configuration lives in a visible `dottend/` directory instead of `.dotter/`. To switch a repository over, rename the directory with `mv .dotter dottend`; dottend says so if it finds a `.dotter/` directory. The template variables are renamed too, from `dotter.*` to `dottend.*`, like `dottend.packages`.
 - **Watch fixes.** `dottend watch` no longer redeploys in an endless loop (also fixed upstream), no longer prints errors for git's short-lived lock files, and exits when its terminal is closed.
 - **Requires the latest stable Rust** (currently 1.99).
 
@@ -49,8 +49,8 @@ Among other things, it explains how to setup and configure Dotter (and so Dotten
 > [!IMPORTANT]
 > **If you're following the Dotter wiki**, it describes the original Dotter. For this fork:
 > - Run `dottend` wherever the wiki says `dotter`, for example `dottend deploy` or `dottend watch`.
-> - Put the configuration in `.dottend/` wherever the wiki says `.dotter/`: `.dottend/global.toml`,
->   `.dottend/local.toml`, and hooks such as `.dottend/post_deploy.sh`.
+> - Put the configuration in `dottend/` (no leading dot) wherever the wiki says `.dotter/`:
+>   `dottend/global.toml`, `dottend/local.toml`, and hooks such as `dottend/post_deploy.sh`.
 > - Use `dottend.*` wherever the wiki uses the `dotter.*` template variables, for example
 >   `{{#if dottend.packages.vim}}` for `{{#if dotter.packages.vim}}`. A condition on an old
 >   `dotter.*` variable is always false, so files that depend on it are silently skipped.
@@ -72,6 +72,8 @@ A dotfile manager and templater written in rust
 
 A dotfile manager and templater written in rust
 
+A dotfile manager and templater written in rust
+
 Usage: dottend [OPTIONS] [COMMAND]
 
 Commands:
@@ -84,21 +86,21 @@ Commands:
 
 Options:
   -g, --global-config <GLOBAL_CONFIG>
-          Location of the global configuration [default: .dottend/global.toml]
+          Location of the global configuration [default: dottend/global.toml]
   -l, --local-config <LOCAL_CONFIG>
-          Location of the local configuration [default: .dottend/local.toml]
+          Location of the local configuration [default: dottend/local.toml]
       --cache-file <CACHE_FILE>
-          Location of cache file [default: .dottend/cache.toml]
+          Location of cache file [default: dottend/cache.toml]
       --cache-directory <CACHE_DIRECTORY>
-          Directory to cache into [default: .dottend/cache]
+          Directory to cache into [default: dottend/cache]
       --pre-deploy <PRE_DEPLOY>
-          Location of optional pre-deploy hook [default: .dottend/pre_deploy.sh]
+          Location of optional pre-deploy hook [default: dottend/pre_deploy.sh]
       --post-deploy <POST_DEPLOY>
-          Location of optional post-deploy hook [default: .dottend/post_deploy.sh]
+          Location of optional post-deploy hook [default: dottend/post_deploy.sh]
       --pre-undeploy <PRE_UNDEPLOY>
-          Location of optional pre-undeploy hook [default: .dottend/pre_undeploy.sh]
+          Location of optional pre-undeploy hook [default: dottend/pre_undeploy.sh]
       --post-undeploy <POST_UNDEPLOY>
-          Location of optional post-undeploy hook [default: .dottend/post_undeploy.sh]
+          Location of optional post-undeploy hook [default: dottend/post_undeploy.sh]
   -d, --dry-run
           Dry run - don't do anything, only print information. Implies -v at least once
   -v, --verbose...

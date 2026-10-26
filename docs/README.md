@@ -57,11 +57,12 @@ format aren't supported, and it targets the latest stable Rust.
   errors, without the `check_dir` forwarding, which would need Rust 1.87 there.
 - The terminal output, TUI, sudo support, and later watcher fixes live only in the fork.
 - The program was renamed from `dotter` to `dottend` to tell it apart from upstream, along with
-  its configuration directory (`.dotter/` to `.dottend/`) and template variables (`dotter.*` to
-  `dottend.*`). Nothing else in the code uses the old name: `main::check_old_config_dir` explains
-  the rename when a repository only has `.dotter/`. An `if` on an old `dotter.*` variable is
-  silently false (missing values are falsy even in strict mode), which is why that message
-  mentions the variables too.
+  its configuration directory (`.dotter/` to `dottend/`, which isn't hidden) and template
+  variables (`dotter.*` to `dottend.*`). Nothing else in the code uses the old name:
+  `main::check_old_config_dir` explains the rename when it finds a `.dotter/` directory, even
+  next to `dottend/`, since `git pull` leaves the untracked `local.toml` and cache
+  behind. An `if` on an old `dotter.*` variable is silently false (missing values are falsy even
+  in strict mode), which is why that message mentions the variables too.
 - All development happens directly on `main`, the fork's default branch. The old `master` (a
   copy of upstream's) was deleted. Branches for upstream PRs are based on `upstream/master`
   instead.

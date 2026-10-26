@@ -175,7 +175,7 @@ async fn watch_and_deploy(opt: Options) -> Result<()> {
 /// Shows the differences between the repository and the installed files in a fullscreen
 /// interface, refreshing whenever either changes.
 async fn watch_interactive(opt: Options) -> Result<()> {
-    // Deploy before opening the interface, like `dotter deploy`: output stays in the terminal and
+    // Deploy before opening the interface, like `dottend deploy`: output stays in the terminal and
     // sudo can ask for a password. Whatever couldn't be deployed is then listed in the interface.
     let startup_message = if deploy_and_report(&opt, false) {
         (log::Level::Info, "Deployed on startup".to_string())

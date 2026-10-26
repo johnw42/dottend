@@ -10,7 +10,7 @@ assignees: ''
 ### Environment
 If applicable, provide the following details:
 - **OS**: Linux distribution / Windows version
-- **Dotter version**: Find out using `dotter -V`
+- **Dottend version**: Find out using `dottend -V`
 - **Additional relevant information**
 
 ### The question

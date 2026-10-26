@@ -10,7 +10,7 @@ upstream dotter's classic format byte for byte; that code was removed.)
 
 - **Logging** (`ui::Logger`): errors and warnings go to stderr with `error:`/`warning:` labels.
   Info goes to stdout unprefixed, debug and trace dimmed with their source location. Only targets
-  starting with `dotter` are logged.
+  starting with `dottend` (the crate name) are logged.
 - **Actions** (`ui::action`): `+ symlink   src → ~/target`, with `ui::path` shortening `$HOME`.
 - **Diffs** (`Diff::print`, `Diff::rows`): rendered with `similar`. Lines get `+`/`-` signs, with
   word-level emphasis and a "no newline at end of file" marker.

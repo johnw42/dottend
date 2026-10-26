@@ -9,7 +9,7 @@ assignees: ''
 
 ## Environment
 - **OS**: Linux distribution / Windows version
-- **Dotter version**: Find out using `dotter -V`
+- **Dottend version**: Find out using `dottend -V`
 - **Additional relevant information**
 
 ## Description
@@ -28,5 +28,5 @@ Include an error message if applicable, preferably using the `RUST_LOG=trace` en
 export RUST_LOG=trace  # linux
 set RUST_LOG=trace  # windows
 
-dotter  # Should now give a lot more output
+dottend  # Should now give a lot more output
 ```

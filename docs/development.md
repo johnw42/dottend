@@ -11,7 +11,7 @@ See also: [Overview](README.md).
   upgrades still need checking for breaking changes; `hostname` 0.4, `mockall` 0.15 and
   `shellexpand` 3 are available but not yet adopted.
 - **ratatui** is 0.30 and uses the same crossterm (0.29) as everything else, through
-  `ratatui::crossterm`. dotter has no direct crossterm dependency.
+  `ratatui::crossterm`. dottend has no direct crossterm dependency.
 - **watchexec** is required at ≥ 8.4 (for `Filterer::check_dir`), with globset filterer
   ≥ 8.0.6. watchexec 8.4's dependencies need Rust 1.87. `cargo install` without `--locked`
   ignores `Cargo.lock` and takes the newest compatible versions, which is how a
@@ -22,7 +22,7 @@ See also: [Overview](README.md).
 ## CI (`.github/workflows/continuous-integration.yml`)
 
 - `cargo check --locked` for Windows, Linux (musl) and macOS (x86 and aarch64).
-- **README check:** the command list in `README.md` must match `dotter --help`. Update it when
+- **README check:** the command list in `README.md` must match `dottend --help`. Update it when
   subcommand help text changes.
 - `cargo publish --dry-run`, `cargo test`, `cargo fmt --check`, and `cargo clippy -- -D warnings`.
 
@@ -43,7 +43,7 @@ a C compiler for the target. Leave those to CI unless the user asks.
 - **No automated tests** cover `changes.rs` or TUI behavior. Those are tested by hand. Methods
   that work:
   - **Drive the TUI in tmux on a private socket:**
-    `tmux -L dottertest -f /dev/null new-session -d -x 120 -y 30 …`, then `send-keys` and
+    `tmux -L dottendtest -f /dev/null new-session -d -x 120 -y 30 …`, then `send-keys` and
     `capture-pane -p`.
   - **Test sudo flows with a fake `sudo`** first on `PATH`: `-v` checks a password and writes a
     stamp, `-n` succeeds only if the stamp exists, other calls strip `-u <user>` and exec the
@@ -54,7 +54,7 @@ a C compiler for the target. Leave those to CI unless the user asks.
   - Test scripts must `set -euo pipefail` and check that `pwd` is inside the scratch directory
     before any git or file operation. A failed `cd` once ran test git commits in this repo.
   - `tmux kill-server` does **not** reliably end the program inside. Check for leftover
-    `dotter watch` processes afterwards and kill them by exact PID. Never use a broad
+    `dottend watch` processes afterwards and kill them by exact PID. Never use a broad
     `pkill -f`: it can match the user's own processes, or the shell running the command.
   - Debug builds aren't rebuilt by `cargo clippy` or `cargo test`. Run `cargo build` before
-    testing `target/debug/dotter`.
+    testing `target/debug/dottend`.

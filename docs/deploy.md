@@ -10,7 +10,7 @@ See also: [Configuration](configuration.md), [Output](output.md), [Interactive T
   `cache/<source>`. Rendered hook scripts go there too.
 - **How edits are detected:** `compare_template(target, cache_file)` compares the installed file
   with the cached copy, *not* with a fresh render. If they differ, someone edited the installed
-  file, and dotter refuses to overwrite it without `--force`.
+  file, and dottend refuses to overwrite it without `--force`.
 
 ## Deploy algorithm (`deploy::run_deploy`)
 

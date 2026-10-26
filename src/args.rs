@@ -57,7 +57,7 @@ pub struct Options {
     pub dry_run: bool,
 
     /// Verbosity level - specify up to 3 times to get more detailed output.
-    /// Specifying at least once prints the differences between what was before and after Dotter's run
+    /// Specifying at least once prints the differences between what was before and after Dottend's run
     #[clap(short = 'v', long = "verbose", action = clap::ArgAction::Count, global = true)]
     pub verbosity: u8,
 

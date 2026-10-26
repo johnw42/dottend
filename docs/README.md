@@ -1,4 +1,4 @@
-# Dotter design notes
+# Dottend design notes
 
 Notes for working on this codebase: how it fits together, the rules it must keep, and the traps
 already found. Function and type names are given instead of line numbers, which go stale; use
@@ -9,13 +9,13 @@ grep.
 - [Configuration](configuration.md): loading and merging `global.toml` and `local.toml`.
 - [Deploying](deploy.md): the cache, the deploy algorithm, filesystem access and sudo.
 - [Output](output.md): the output format, and capture mode.
-- [Watch mode](watch.md): `dotter watch` and how the watcher is filtered.
+- [Watch mode](watch.md): `dottend watch` and how the watcher is filtered.
 - [Interactive TUI](tui.md): change detection, copy-back, and the interface.
 - [Development](development.md): dependencies and toolchain, CI, testing.
 
 ## What it does
 
-Dotter deploys files from a dotfiles repository (the current directory) to their target
+Dottend deploys files from a dotfiles repository (the current directory) to their target
 locations, either as **symlinks** or as rendered **templates** (Handlebars). It records what it
 deployed in a cache, so later runs can update or remove files and can tell when someone edited an
 installed file by hand.
@@ -38,15 +38,16 @@ Subcommands (`src/args.rs`): `deploy` (default), `undeploy`, `init`, `watch` (fe
 | `hooks.rs` | Renders a hook script as a template into the cache directory and runs it. |
 | `init.rs` | Writes a starter config listing every file in the directory. |
 | `ui.rs` | Styles, the logger, capture mode, prompts. |
-| `watch.rs` | `dotter watch`: auto-deploy mode and interactive mode (watchexec setup and filtering). |
+| `watch.rs` | `dottend watch`: auto-deploy mode and interactive mode (watchexec setup and filtering). |
 | `changes.rs` | For the TUI: finds differences between the repo and the installed files (`Plan`, `Change`) and resolves them (`Plan::apply`). |
-| `tui.rs` | The ratatui interface, opened by `dotter watch` and by `dotter deploy` when files couldn't be deployed. |
+| `tui.rs` | The ratatui interface, opened by `dottend watch` and by `dottend deploy` when files couldn't be deployed. |
 
 Only `watch.rs` (and watchexec) depends on feature `watch`; `changes.rs` and `tui.rs` are always compiled, since `deploy` uses them too.
 
 ## History
 
-This is the user's own fork (`origin` = johnw42/dotter, `upstream` = SuperCuber/dotter). It no
+This is the user's own fork of Dotter, renamed Dottend (`origin` = johnw42/dottend, `upstream` =
+SuperCuber/dotter). It no
 longer needs to stay compatible with upstream's output or toolchain: scripts parsing the old output
 format aren't supported, and it targets the latest stable Rust.
 
@@ -55,6 +56,9 @@ format aren't supported, and it targets the latest stable Rust.
 - A draft PR (#236) offers upstream a version-agnostic fix for the watcher's vanished-file
   errors, without the `check_dir` forwarding, which would need Rust 1.87 there.
 - The terminal output, TUI, sudo support, and later watcher fixes live only in the fork.
+- The program was renamed from `dotter` to `dottend` to tell it apart from upstream. Its
+  configuration is unchanged for compatibility: it still reads `.dotter/`, and templates still
+  use the `dotter.*` variables.
 - All development happens directly on `main`, the fork's default branch. The old `master` (a
   copy of upstream's) was deleted. Branches for upstream PRs are based on `upstream/master`
   instead.

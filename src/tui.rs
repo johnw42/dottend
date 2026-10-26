@@ -1,4 +1,4 @@
-//! The fullscreen interface of `dotter watch`, also opened by `dotter deploy` when files couldn't
+//! The fullscreen interface of `dottend watch`, also opened by `dottend deploy` when files couldn't
 //! be deployed: lists the differences between the repository and
 //! the installed files, shows each one as a diff, and resolves them in either direction.
 
@@ -39,14 +39,14 @@ const VISIBLE_MESSAGES: usize = 4;
 /// Which command the interface was opened by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
-    /// `dotter watch`: the files are watched and the interface refreshes when they change
+    /// `dottend watch`: the files are watched and the interface refreshes when they change
     #[cfg_attr(not(feature = "watch"), allow(dead_code))]
     Watch,
-    /// `dotter deploy`: opened to resolve the files a deploy couldn't handle
+    /// `dottend deploy`: opened to resolve the files a deploy couldn't handle
     Deploy,
 }
 
-/// Whether `dotter deploy` should open the interface to resolve files it couldn't deploy: only when
+/// Whether `dottend deploy` should open the interface to resolve files it couldn't deploy: only when
 /// someone is at a terminal to use it, and it could change something.
 pub fn can_resolve_interactively(opt: &Options) -> bool {
     use std::io::IsTerminal;
@@ -645,8 +645,8 @@ impl<'a> App<'a> {
             (None, n) => Span::raw(format!("{n} changes")).yellow(),
         };
         let title = match self.mode {
-            Mode::Watch => " dotter watch ",
-            Mode::Deploy => " dotter deploy ",
+            Mode::Watch => " dottend watch ",
+            Mode::Deploy => " dottend deploy ",
         };
         let mut spans = vec![Span::raw(title).bold().reversed(), Span::raw("  "), status];
         if self.opt.dry_run {
@@ -870,7 +870,7 @@ fn describe(change: &Change) -> (String, Style) {
         State::Removed => {
             "Removed from the configuration. Deploying deletes the installed file.".to_string()
         }
-        State::Untracked => "The installed file already matches the repository, but dotter \
+        State::Untracked => "The installed file already matches the repository, but dottend \
             hasn't recorded it as deployed. Deploying records it."
             .to_string(),
         State::Problem(problem) => {

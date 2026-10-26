@@ -54,8 +54,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          asset_path: target/${{ matrix.target }}/release/dotter${{ matrix.exe_suffix }}
-          asset_name: dotter-${{ matrix.build_name}}${{ matrix.name_suffix }}
+          asset_path: target/${{ matrix.target }}/release/dottend${{ matrix.exe_suffix }}
+          asset_name: dottend-${{ matrix.build_name}}${{ matrix.name_suffix }}
           asset_content_type: application/octet-stream
           upload_url: ${{ github.event.release.upload_url }}
   build-completions:

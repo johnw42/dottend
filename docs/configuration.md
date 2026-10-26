@@ -24,7 +24,7 @@ See also: [Deploying](deploy.md), [Overview](README.md).
 - **Targets** are passed through `shellexpand::full` (`~`, env vars), so they're absolute.
 - **`if` conditions** are evaluated in `handlebars_helpers::filter_files_condition` by rendering
   `{{#if <cond>}}true{{/if}}`.
-- **The `dotter` variable** holds `packages.<name>` (bool), `files`, `os`, `unix`, `windows`,
+- **The `dotter` variable** (named after upstream, and kept for compatibility) holds `packages.<name>` (bool), `files`, `os`, `unix`, `windows`,
   `linux`, `macos`, `current_dir`, `hostname`.
 - **Handlebars settings:** strict mode is on, so missing variables are errors, and HTML escaping
   is off.

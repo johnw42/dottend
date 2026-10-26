@@ -73,7 +73,7 @@ struct Logger;
 
 impl Log for Logger {
     fn enabled(&self, metadata: &Metadata<'_>) -> bool {
-        metadata.level() <= log::max_level() && metadata.target().starts_with("dotter")
+        metadata.level() <= log::max_level() && metadata.target().starts_with("dottend")
     }
 
     fn log(&self, record: &Record<'_>) {

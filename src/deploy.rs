@@ -117,7 +117,7 @@ pub(crate) fn desired_files(
     BTreeMap<PathBuf, TemplateTarget>,
 )> {
     // On Windows, you need developer mode to create symlinks.
-    let symlinks_enabled = if filesystem::symlinks_enabled(&PathBuf::from("DOTTER_SYMLINK_TEST"))
+    let symlinks_enabled = if filesystem::symlinks_enabled(&PathBuf::from("DOTTEND_SYMLINK_TEST"))
         .context("check whether symlinks are enabled")?
     {
         true

@@ -76,7 +76,7 @@ async fn repository_filterer(opt: &Options, origin: &Path) -> Result<GlobsetFilt
             (format!("{}", opt.cache_file.display()), None),
             (".git".to_string(), None),
             (".git/**".to_string(), None),
-            ("DOTTER_SYMLINK_TEST".to_string(), None),
+            ("DOTTEND_SYMLINK_TEST".to_string(), None),
         ],
         vec![],
         vec![],

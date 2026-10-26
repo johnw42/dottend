@@ -617,7 +617,10 @@ mod test {
         assert_eq!(UnixUser::Uid(0).uid(), Some(0));
         assert_eq!(UnixUser::Uid(-1).uid(), None);
         assert_eq!(UnixUser::Name("root".into()).uid(), Some(0));
-        assert_eq!(UnixUser::Name("no-such-user-for-dotter".into()).uid(), None);
+        assert_eq!(
+            UnixUser::Name("no-such-user-for-dottend".into()).uid(),
+            None
+        );
     }
 
     use super::*;

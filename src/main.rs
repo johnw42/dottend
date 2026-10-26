@@ -50,8 +50,9 @@ pub(crate) fn display_error(error: anyhow::Error) {
     error!("{}", error_message);
 }
 
-/// Fails with directions to rename the configuration directory if the repository still uses the
-/// `.dotter/` name from before the fork was renamed, instead of a bare "file not found".
+/// Fails with directions to migrate if the repository still uses the `.dotter/` directory from
+/// before the fork was renamed, instead of a bare "file not found". This is the only place the old
+/// name is used.
 fn check_old_config_dir(global_config: &std::path::Path) -> Result<()> {
     if global_config == std::path::Path::new(".dottend/global.toml")
         && !global_config.exists()
@@ -59,7 +60,8 @@ fn check_old_config_dir(global_config: &std::path::Path) -> Result<()> {
     {
         return Err(anyhow::anyhow!(
             "this repository uses the old .dotter/ directory, which dottend now calls .dottend/. \
-             Rename it with `mv .dotter .dottend`."
+             Rename it with `mv .dotter .dottend`, and rename the `dotter.*` template variables \
+             to `dottend.*` (an `if` on a `dotter.*` variable is now always false)."
         )
         .context("find .dottend/global.toml"));
     }

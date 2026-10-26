@@ -1,6 +1,8 @@
 > **Dottend is a fork** of [Dotter](https://github.com/SuperCuber/dotter) by SuperCuber, maintained
-> at [johnw42/dottend](https://github.com/johnw42/dottend). It uses the same configuration format,
-> kept in a `.dottend/` directory instead of `.dotter/`, but adds an interactive `dottend watch`, changes the command-line output, and requires the latest stable Rust. See
+> at [johnw42/dottend](https://github.com/johnw42/dottend). Its configuration works like Dotter's,
+> but lives in `.dottend/` instead of `.dotter/`, and the template variables are `dottend.*`
+> instead of `dotter.*`. It also adds an interactive `dottend watch`, changes the command-line
+> output, and requires the latest stable Rust. See
 > [What's different in this fork](#whats-different-in-this-fork). The text below is adapted from
 > the original README.
 
@@ -21,7 +23,7 @@ Dottend aims to solve all those problems by providing a flexible configuration a
 - **Interactive `dottend watch`.** In a terminal, `dottend watch` deploys once, then opens a fullscreen view of every difference between the repository and the installed files, refreshing as either changes. Each change is shown as a diff, and you can deploy the repository's version or copy the installed file back into the repository (offered only when nothing would be lost, so never for real templates). It also watches the installed files, so edits made outside the repository show up immediately. When a change needs root, it steps aside for `sudo` to ask for your password. Use `dottend watch --no-tui` for the old behavior of deploying on every change.
 - **Resolve deploy problems interactively.** When `dottend deploy` can't deploy some files (for example because an installed file was edited), it opens the same view on just those files, so you can deploy or copy back each one. It only does this in a terminal; use `--no-tui` to only report the problems.
 - **New output format.** Errors and warnings are labelled `error:`/`warning:`, file actions read like `+ symlink   bashrc → ~/.bashrc`, diffs have `+`/`-` signs with changed words highlighted, and deploys end with a summary such as `Deployed: 2 added, 1 skipped`. Colors honor `NO_COLOR` and `CLICOLOR_FORCE`. The output differs from the original Dotter's, so scripts that parse it may need updating.
-- **A new name.** The program is called `dottend`, so it can be installed alongside the original `dotter`, and its configuration lives in `.dottend/` instead of `.dotter/`. To switch a repository over, rename the directory with `mv .dotter .dottend`; dottend says so if it finds only `.dotter/`. Templates still use the `dotter.*` variables, like `dotter.packages`.
+- **A new name.** The program is called `dottend`, so it can be installed alongside the original `dotter`, and its configuration lives in `.dottend/` instead of `.dotter/`. To switch a repository over, rename the directory with `mv .dotter .dottend`; dottend says so if it finds only `.dotter/`. The template variables are renamed too, from `dotter.*` to `dottend.*`, like `dottend.packages`.
 - **Watch fixes.** `dottend watch` no longer redeploys in an endless loop (also fixed upstream), no longer prints errors for git's short-lived lock files, and exits when its terminal is closed.
 - **Requires the latest stable Rust** (currently 1.99).
 
@@ -41,7 +43,7 @@ cargo install --locked --path .
 `--locked` builds with the dependency versions the fork is tested with.
 
 # Wiki
-The original project's [wiki](https://github.com/SuperCuber/dotter/wiki) applies to this fork too, since the configuration format is the same.
+The original project's [wiki](https://github.com/SuperCuber/dotter/wiki) applies to this fork too, apart from the names listed below.
 Among other things, it explains how to setup and configure Dotter (and so Dottend), as well as giving insight on how the templating and deployment works.
 
 > [!IMPORTANT]
@@ -49,8 +51,9 @@ Among other things, it explains how to setup and configure Dotter (and so Dotten
 > - Run `dottend` wherever the wiki says `dotter`, for example `dottend deploy` or `dottend watch`.
 > - Put the configuration in `.dottend/` wherever the wiki says `.dotter/`: `.dottend/global.toml`,
 >   `.dottend/local.toml`, and hooks such as `.dottend/post_deploy.sh`.
-> - Keep the `dotter.*` template variables as the wiki shows them, for example
->   `{{#if dotter.packages.vim}}`. Their name didn't change.
+> - Use `dottend.*` wherever the wiki uses the `dotter.*` template variables, for example
+>   `{{#if dottend.packages.vim}}` for `{{#if dotter.packages.vim}}`. A condition on an old
+>   `dotter.*` variable is always false, so files that depend on it are silently skipped.
 > - Expect different output from the wiki's examples; see
 >   [What's different in this fork](#whats-different-in-this-fork).
 

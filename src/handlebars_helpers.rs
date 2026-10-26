@@ -23,7 +23,7 @@ pub fn create_new_handlebars<'b>(config: &mut Configuration) -> Result<Handlebar
     #[cfg(feature = "scripting")]
     register_script_helpers(&mut handlebars, &config.helpers);
 
-    add_dotter_variable(&mut config.variables, &config.files, &config.packages);
+    add_dottend_variable(&mut config.variables, &config.files, &config.packages);
     filter_files_condition(&handlebars, &config.variables, &mut config.files)
         .context("filter files based on `if` field")?;
     trace!("Handlebars instance: {:#?}", handlebars);
@@ -310,13 +310,13 @@ fn files_as_toml(files: &Files) -> Value {
     )
 }
 
-fn add_dotter_variable(
+fn add_dottend_variable(
     variables: &mut Variables,
     files: &Files,
     packages: &BTreeMap<String, bool>,
 ) {
-    let mut dotter = Table::new();
-    dotter.insert(
+    let mut dottend = Table::new();
+    dottend.insert(
         "packages".into(),
         Value::Table(
             packages
@@ -325,22 +325,22 @@ fn add_dotter_variable(
                 .collect(),
         ),
     );
-    dotter.insert("files".into(), files_as_toml(files));
-    dotter.insert(
+    dottend.insert("files".into(), files_as_toml(files));
+    dottend.insert(
         "os".into(),
         (if cfg!(windows) { "windows" } else { "unix" }).into(),
     );
 
     // New better way
-    dotter.insert("unix".into(), Value::Boolean(cfg!(unix)));
-    dotter.insert(
+    dottend.insert("unix".into(), Value::Boolean(cfg!(unix)));
+    dottend.insert(
         "windows".into(),
         Value::Boolean(cfg!(target_os = "windows")),
     );
-    dotter.insert("linux".into(), Value::Boolean(cfg!(target_os = "linux")));
-    dotter.insert("macos".into(), Value::Boolean(cfg!(target_os = "macos")));
+    dottend.insert("linux".into(), Value::Boolean(cfg!(target_os = "linux")));
+    dottend.insert("macos".into(), Value::Boolean(cfg!(target_os = "macos")));
 
-    dotter.insert(
+    dottend.insert(
         "current_dir".into(),
         Value::String(
             std::env::current_dir()
@@ -350,15 +350,15 @@ fn add_dotter_variable(
         ),
     );
     if let Ok(hostname) = hostname::get() {
-        dotter.insert(
+        dottend.insert(
             "hostname".into(),
             Value::String(hostname.to_string_lossy().into()),
         );
     } else {
-        warn!("Failed to get hostname, skipping dotter.hostname variable");
+        warn!("Failed to get hostname, skipping dottend.hostname variable");
     }
 
-    variables.insert("dotter".into(), dotter.into());
+    variables.insert("dottend".into(), dottend.into());
 }
 
 #[cfg(test)]
@@ -382,15 +382,17 @@ mod test {
 
         assert!(eval_condition(&handlebars, &config.variables, "foo").unwrap());
         assert!(!eval_condition(&handlebars, &config.variables, "bar").unwrap());
-        assert!(eval_condition(&handlebars, &config.variables, "dotter.packages.default").unwrap());
         assert!(
-            !eval_condition(&handlebars, &config.variables, "dotter.packages.nonexist").unwrap()
+            eval_condition(&handlebars, &config.variables, "dottend.packages.default").unwrap()
+        );
+        assert!(
+            !eval_condition(&handlebars, &config.variables, "dottend.packages.nonexist").unwrap()
         );
         assert!(
             !eval_condition(
                 &handlebars,
                 &config.variables,
-                "(and true dotter.packages.disabled)"
+                "(and true dottend.packages.disabled)"
             )
             .unwrap()
         );
